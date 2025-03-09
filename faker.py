@@ -30,7 +30,7 @@ def generate_parabola(
     return x, y
 
 
-def generate_acoustic_signal():
+def generate_acoustic_signal() -> tuple[np.ndarray, np.ndarray]:
     segments = random.randint(15, 20)
     y_coefficient = 1.0
     cur_width = 3
@@ -43,7 +43,7 @@ def generate_acoustic_signal():
     for segment in range(1, segments + 1):
         cur_y *= y_coefficient - (segment / segments)
         cur_y = max(cur_y, 0.75)
-        x, y = generate_parabola(vertex=(cur_x, cur_y), width=cur_width, num_points=500)
+        x, y = generate_parabola(vertex=(cur_x, cur_y), width=cur_width, num_points=100)
         if random.random() < 0.5:  # Разворачиваем ветви параболы с вероятностью 50%
             y = -y
 
@@ -57,9 +57,37 @@ def generate_acoustic_signal():
     return np.concatenate(x_all), np.concatenate(y_all)
 
 
+def find_zero_crossings(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """
+    Находит точки на оси x, где y меняет знак.
+
+    Аргументы:
+        x: np.ndarray - массив значений аргумента.
+        y: np.ndarray - массив значений функции.
+
+    Возвращает:
+        np.ndarray с рассчитанными значениями x, где знак функции изменяется на нулевой.
+    """
+    assert len(x.shape) == len(y.shape) == 1, f"Shape должен быть (n, ), но получено: {x.shape}, {y.shape}"
+    assert x.shape == y.shape, f"x.shape ({x.shape}) != y.shape ({y.shape})."
+
+    zero_points = []
+    for i in range(len(y) - 1):
+        if y[i] * y[i + 1] < 0:  # если сменился знак
+            # Интерполяция: y = y[i] + t*(y[i+1] - y[i]) = 0, находим t
+            t = -y[i] / (y[i + 1] - y[i])
+            # Вычисляем соответствующее x
+            x_zero = x[i] + t * (x[i + 1] - x[i])
+            zero_points.append(x_zero)
+    return np.array(zero_points)
+
+
 x, y = generate_acoustic_signal()
 
 plt.plot(x, y, "black")
+zero_crossings_xs = find_zero_crossings(x, y)
+for zero_crossings_x in zero_crossings_xs:
+    plt.axvline(x=zero_crossings_x, color='red', linestyle='dotted')
 
 plt.axhline(0, color="black", linewidth=1)
 plt.axvline(0, color="black", linewidth=1)
