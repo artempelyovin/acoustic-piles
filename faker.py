@@ -1,5 +1,3 @@
-import random
-
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -31,10 +29,10 @@ def generate_parabola(
 
 
 def generate_acoustic_signal() -> tuple[np.ndarray, np.ndarray]:
-    segments = random.randint(15, 20)
+    segments = np.random.randint(15, 20)
     y_coefficient = 1.0
-    cur_width = 3
-    cur_y = 100
+    cur_width = np.random.uniform(2, 5)
+    cur_y = np.random.uniform(70, 120)
     cur_x = cur_width
 
     x_all = []
@@ -44,7 +42,7 @@ def generate_acoustic_signal() -> tuple[np.ndarray, np.ndarray]:
         cur_y *= y_coefficient - (segment / segments)
         cur_y = max(cur_y, 0.75)
         x, y = generate_parabola(vertex=(cur_x, cur_y), width=cur_width, num_points=100)
-        if random.random() < 0.5:  # Разворачиваем ветви параболы с вероятностью 50%
+        if np.random.random() < 0.5:  # Разворачиваем ветви параболы с вероятностью 50%
             y = -y
 
         x_all.append(x)
@@ -89,6 +87,6 @@ zero_crossings_xs = find_zero_crossings(x, y)
 for zero_crossings_x in zero_crossings_xs:
     plt.axvline(x=zero_crossings_x, color='red', linestyle='dotted')
 
-plt.axhline(0, color="black", linewidth=1)
-plt.axvline(0, color="black", linewidth=1)
+plt.axhline(0, color="black", linewidth=0.5)
+plt.axvline(0, color="black", linewidth=0.5)
 plt.show()
