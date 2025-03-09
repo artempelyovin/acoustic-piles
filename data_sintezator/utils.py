@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
 
 
 def generate_parabola(
@@ -57,7 +57,7 @@ def generate_acoustic_signal() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         x_all.append(x)
         y_all.append(y)
         if cur_sign != last_sign:
-            zero_crossings.append(cur_x-cur_width)
+            zero_crossings.append(cur_x - cur_width)
 
         new_width = cur_width + cur_width * 0.07
         cur_x = cur_x + new_width + cur_width
@@ -67,12 +67,12 @@ def generate_acoustic_signal() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     return np.concatenate(x_all), np.concatenate(y_all), np.array(zero_crossings)
 
 
-x, y, zero_crossings_xs = generate_acoustic_signal()
+def draw_acoustic_signal(ax: Axes, x: np.ndarray, y: np.ndarray) -> None:
+    ax.plot(x, y, "black")
+    # ax.axhline(0, color="black", linewidth=0.5)
+    # ax.axvline(0, color="black", linewidth=0.5)
 
-plt.plot(x, y, "black")
-for zero_crossings_x in zero_crossings_xs:
-    plt.axvline(x=zero_crossings_x, color='red', linestyle='dotted')
 
-plt.axhline(0, color="black", linewidth=0.5)
-plt.axvline(0, color="black", linewidth=0.5)
-plt.show()
+def draw_zero_crossings(ax: Axes, zero_crossings_xs: np.ndarray) -> None:
+    for zero_crossings_x in zero_crossings_xs:
+        ax.axvline(x=zero_crossings_x, color="red", linestyle="dotted")
