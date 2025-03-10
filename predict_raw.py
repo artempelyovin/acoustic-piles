@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from utils import generate_model__raw, load_dataset__raw, draw_acoustic_signal, draw_zero_crossings
 
 DATASET_PATH = "datasets/raw_data"
-WEIGHTS_PATH = "weights/raw/model_epoch_47_val_loss_1590.07.h5"
+WEIGHTS_PATH = "weights/raw/val_loss_0.06489.h5"
 
 
 def load_model(weights_path: str) -> Sequential:
@@ -26,12 +26,9 @@ def main() -> None:
 
         x = X[0::2]  # координата x - это все чётные элементы
         y = X[1::2]  # координата y - это все нечётные элементы
+        zero_crossings_xs_real = Y
 
-        # избавляемся от пустых значений (которые у нас равны нулю)
-        zero_crossings_xs_real = np.array([v for v in Y if v != 0.0])
         zero_crossings_xs_predict = model.predict(np.array([X]))[0]
-        # избавляемся от пустых значений (которые меньше нуля)
-        zero_crossings_xs_predict = np.array([v for v in zero_crossings_xs_predict if v > 0.0])
 
         print(zero_crossings_xs_predict)
         draw_acoustic_signal(ax=ax, x=x, y=y)

@@ -4,7 +4,7 @@ from keras.src.optimizers import Adam
 from utils import load_dataset__raw, generate_model__raw
 
 DATASET_PATH = "datasets/raw_data"
-WEIGHTS_PATH = "weights/raw/model_epoch_{epoch:02d}_val_loss_{val_loss:.2f}.h5"
+WEIGHTS_PATH = "weights/raw/val_loss_0.06489.h5"
 
 
 def main() -> None:
@@ -20,7 +20,7 @@ def main() -> None:
     checkpoint_callback = ModelCheckpoint(
         filepath=WEIGHTS_PATH, monitor="val_loss", mode="min", save_best_only=True, verbose=1
     )
-    model.fit(X_train, Y_train, epochs=500, batch_size=128, validation_split=0.2, callbacks=[checkpoint_callback])
+    model.fit(X_train, Y_train, epochs=100, batch_size=128, validation_split=0.2, callbacks=[checkpoint_callback])
 
 
 if __name__ == "__main__":
