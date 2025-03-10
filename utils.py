@@ -106,10 +106,10 @@ def load_dataset__raw(dirpath: str) -> tuple[np.ndarray, np.ndarray]:
     all_y = []
     for path_ in os.listdir(dirpath):
         points, answers = load_raw_file(f"{dirpath}/{path_}")
-        # добиваем значением `0` до нужного shape
-        points = np.pad(points, (0, X_SHAPE_RAW - points.shape[0]), mode="constant", constant_values=(0, 0))
-        answers = np.pad(answers, (0, Y_SHAPE - answers.shape[0]), mode="constant", constant_values=(0, 0))
-        all_x.append(np.array(points))  # вход нейросети в виде точек [x1, y1, x2, y2, ..., xn, yn, 0, 0, ...., 0]
+        # добиваем значением `-1` до нужного shape
+        points = np.pad(points, (0, X_SHAPE_RAW - points.shape[0]), mode="constant", constant_values=(0, -1))
+        answers = np.pad(answers, (0, Y_SHAPE - answers.shape[0]), mode="constant", constant_values=(0, -1))
+        all_x.append(np.array(points))  # вход нейросети в виде точек [x1, y1, x2, y2, ..., xn, yn, -1, -1, ...., -1]
         all_y.append(answers)  # выход в виде координат x, где функция меняет знак
     return np.array(all_x), np.array(all_y)
 
@@ -155,11 +155,11 @@ def generate_model__raw() -> Sequential:
     return Sequential(
         [
             Input(shape=(X_SHAPE_RAW,)),
-            Dense(512, activation="relu"),
+            Dense(512),
             Dropout(0.2),
-            Dense(256, activation="relu"),
+            Dense(256),
             Dropout(0.2),
-            Dense(128, activation="relu"),
+            Dense(128),
             Dense(Y_SHAPE, activation="linear"),
         ]
     )

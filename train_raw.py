@@ -14,13 +14,13 @@ def main() -> None:
     Y_train, _ = Y[:split_index], Y[split_index:]
 
     model = generate_model__raw()
-    model.compile(optimizer=Adam(learning_rate=0.0005), loss="mean_squared_error", metrics=["mae"])
+    model.compile(optimizer=Adam(learning_rate=0.001), loss="mean_squared_error", metrics=["mae"])
     model.summary()
 
     checkpoint_callback = ModelCheckpoint(
         filepath=WEIGHTS_PATH, monitor="val_loss", mode="min", save_best_only=True, verbose=1
     )
-    model.fit(X_train, Y_train, epochs=500, batch_size=128, validation_split=0.2, callbacks=[checkpoint_callback])
+    model.fit(X_train, Y_train, epochs=250, batch_size=128, validation_split=0.2, callbacks=[checkpoint_callback])
 
 
 if __name__ == "__main__":

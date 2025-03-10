@@ -26,14 +26,13 @@ def main() -> None:
 
         x = X[0::2]  # координата x - это все чётные элементы
         y = X[1::2]  # координата y - это все нечётные элементы
+        zero_crossings_xs_real = Y
 
-        # избавляемся от пустых значений (которые у нас равны нулю)
-        zero_crossings_xs_real = np.array([v for v in Y if v != 0.0])
         zero_crossings_xs_predict = model.predict(np.array([X]))[0]
         # избавляемся от пустых значений (которые меньше нуля)
         zero_crossings_xs_predict = np.array([v for v in zero_crossings_xs_predict if v > 0.0])
 
-        print(zero_crossings_xs_predict)
+        print([round(float(v), 2) for v in sorted(zero_crossings_xs_predict)])
         draw_acoustic_signal(ax=ax, x=x, y=y)
         draw_zero_crossings(ax=ax, zero_crossings_xs=zero_crossings_xs_predict, color="blue", alpha=0.3)
         draw_zero_crossings(ax=ax, zero_crossings_xs=zero_crossings_xs_real, color="red", alpha=0.5)
