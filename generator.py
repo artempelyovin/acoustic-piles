@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 
-from utils import generate_acoustic_signal, draw_acoustic_signal, normalize
+from utils import generate_acoustic_signal, draw_acoustic_signal, draw_zero_crossings
 
 DATASET_SIZE = 5000
 FIG_DATASET_DIR = "datasets/fig_data"
@@ -38,10 +38,6 @@ def main() -> None:
     i = 0
     while i < DATASET_SIZE:
         x, y, zero_crossings_xs = generate_acoustic_signal()
-        # нормируем x-сы!
-        x_max, x_min = x.max(), x.min()
-        x = normalize(x)
-        zero_crossings_xs = normalize(zero_crossings_xs, max_value=x_max, min_value=x_min)
 
         fig, ax = plt.subplots()
         # убираем всё лишнее с графика

@@ -141,12 +141,14 @@ def load_dataset__gph(dirpath_gph: str, dirpath_raw: str) -> tuple[np.ndarray, n
     return np.array(all_x), np.array(all_y)
 
 
-def normalize(x: np.ndarray, max_value: float | None = None, min_value: float | None = None) -> np.ndarray:
+def normalize_x(x: np.ndarray) -> np.ndarray:
     """Нормализует вектор чисел в диапазон [0;1]"""
-    if max_value:
-        assert min_value is not None
-        return (x - min_value) / (max_value - min_value)
     return (x - x.min()) / (x.max() - x.min())
+
+
+def denormalize_x(x: np.ndarray, x_min: float, x_max: float) -> np.ndarray:
+    """Денормализует вектор чисел в диапазоне [0;1] обратно в диапазон [x_min;x_max]"""
+    return x * (x_max - x_min) + x_min
 
 
 def generate_model__raw() -> Sequential:
