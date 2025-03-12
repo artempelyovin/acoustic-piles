@@ -2,10 +2,16 @@ import numpy as np
 from keras import Sequential
 from matplotlib import pyplot as plt
 
-from utils import generate_model__raw, load_dataset__raw, draw_acoustic_signal, draw_zero_crossings, Y_SHAPE
+from utils import (
+    generate_model__raw,
+    load_dataset__raw,
+    draw_acoustic_signal,
+    draw_zero_crossings,
+    X_SHAPE_RAW,
+)
 
-DATASET_PATH = "datasets/raw_data"
-WEIGHTS_PATH = "weights/raw/model_epoch_249_val_loss_512.70.h5"
+DATASET_DIR = "datasets/raw_data"
+WEIGHTS_PATH = "weights/raw/model_epoch_06_val_loss_3.70.h5"
 
 
 def load_model(weights_path: str) -> Sequential:
@@ -15,7 +21,7 @@ def load_model(weights_path: str) -> Sequential:
 
 
 def main() -> None:
-    X, Y = load_dataset__raw(DATASET_PATH)
+    X, Y = load_dataset__raw(DATASET_DIR)
     split_index = int(0.8 * len(X))
     _, X_test = X[:split_index], X[split_index:]
     _, Y_test = Y[:split_index], Y[split_index:]
@@ -26,31 +32,18 @@ def main() -> None:
 
         x = X[0::2]  # координата x - это все чётные элементы
         y = X[1::2]  # координата y - это все нечётные элементы
-        zero_crossings_xs_real = Y
-        # избавляемся от пустых значений (которые меньше нуля)
-        zero_crossings_xs_real = np.array([v for v in zero_crossings_xs_real if v > 0.0])
+        real_count_points = len(Y)
 
-        zero_crossings_xs_predict = model.predict(np.array([X]))[0]
-        # избавляемся от пустых значений (которые меньше нуля)
-        zero_crossings_xs_predict = np.array([v for v in zero_crossings_xs_predict if v > 0.0])
-
-        real_points_less_than_zero = Y_SHAPE - len(zero_crossings_xs_real)
-        predict_points_less_than_zero = Y_SHAPE - len(zero_crossings_xs_predict)
+        # добили до нужного shape значение -1
+        X_extended = np.pad(X, (0, X_SHAPE_RAW - len(X)), mode="constant", constant_values=(0, -1))
+        predict_count_points = model.predict(np.array([X_extended]))[0]
 
         print(
-            f"Точек меньше нуля должно быть {real_points_less_than_zero}, получено: {predict_points_less_than_zero}, "
-            f"разница: {abs(real_points_less_than_zero-predict_points_less_than_zero)}"
+            f"Дано {real_count_points}, получено {predict_count_points}. "
+            f"Разница: {abs(real_count_points - predict_count_points)}"
         )
-        print("Real:   ", [round(float(v), 2) for v in sorted(zero_crossings_xs_real)])
-        print("Predict:", [round(float(v), 2) for v in sorted(zero_crossings_xs_predict)])
-
         draw_acoustic_signal(ax=ax, x=x, y=y)
-        draw_zero_crossings(
-            ax=ax, zero_crossings_xs=zero_crossings_xs_predict, color="blue", linestyle="dotted", alpha=0.5
-        )
-        draw_zero_crossings(
-            ax=ax, zero_crossings_xs=zero_crossings_xs_real, color="red", linestyle="dashdot", alpha=0.5
-        )
+        draw_zero_crossings(ax=ax, zero_crossings_xs=Y, color="red", linestyle="dashdot", alpha=0.5)
 
         plt.show()
 

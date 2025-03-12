@@ -3,13 +3,22 @@ import os
 
 import numpy as np
 from keras import Sequential, Input
-from keras.src.layers import Dense, Dropout, Flatten, Conv2D, BatchNormalization, MaxPooling2D, Conv1D, MaxPooling1D, \
-    Reshape
+from keras.src.layers import (
+    Dense,
+    Dropout,
+    Flatten,
+    Conv2D,
+    BatchNormalization,
+    MaxPooling2D,
+    Conv1D,
+    MaxPooling1D,
+    Reshape,
+)
 from matplotlib.axes import Axes
 
 X_SHAPE_RAW = 4000
 X_SHAPE_GPH = (369, 496, 1)  # изображение размером 369x496 в одноканале
-Y_SHAPE = 20
+Y_SHAPE = 1  # ответ - количество спец. нулевых точек
 
 
 def generate_parabola(
@@ -74,6 +83,8 @@ def generate_acoustic_signal() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         cur_width = new_width
         last_sign = cur_sign
 
+    if 0 in zero_crossings:  # порой попадает мусор в виде нуля, удаляем его
+        zero_crossings.remove(0)
     return np.concatenate(x_all), np.concatenate(y_all), np.array(zero_crossings)
 
 
@@ -89,7 +100,7 @@ def draw_zero_crossings(
         ax.axvline(x=zero_crossings_x, color=color, linestyle=linestyle, alpha=alpha)
 
 
-def load_dataset__raw(dirpath: str) -> tuple[np.ndarray, np.ndarray]:
+def load_dataset__raw(dirpath: str) -> tuple[list[list[float]], list[list[float]]]:
     """
     Загружает датасет "сырых" (в формате json) данных
     :param dirpath: путь до датасета
@@ -98,21 +109,26 @@ def load_dataset__raw(dirpath: str) -> tuple[np.ndarray, np.ndarray]:
         - Y - координаты x нулевых точек, в которых функция меняет знак
     """
 
-    def load_raw_file(filepath: str) -> tuple[np.ndarray, np.ndarray]:
+    def load_raw_file(filepath: str) -> tuple[list[float], list[float]]:
         with open(filepath, "r") as f:
             data = json.load(f)
-            return np.array(data["points"]), np.array(data["answers"])
+            return data["points"], data["answers"]
 
     all_x = []
     all_y = []
     for path_ in os.listdir(dirpath):
         points, answers = load_raw_file(f"{dirpath}/{path_}")
-        # добиваем значением `-1` до нужного shape
-        points = np.pad(points, (0, X_SHAPE_RAW - points.shape[0]), mode="constant", constant_values=(0, -1))
-        answers = np.pad(answers, (0, Y_SHAPE - answers.shape[0]), mode="constant", constant_values=(0, -1))
-        all_x.append(np.array(points))  # вход нейросети в виде точек [x1, y1, x2, y2, ..., xn, yn, -1, -1, ...., -1]
+        all_x.append(points)  # вход нейросети в виде точек [x1, y1, x2, y2, ..., xn, yn]
         all_y.append(answers)  # выход в виде координат x, где функция меняет знак
-    return np.array(all_x), np.array(all_y)
+    return all_x, all_y
+
+
+def expand_arrays_to_length(arrays: list[list], length: int, fill_value: float) -> np.ndarray:
+    width = len(arrays)
+    result = np.full(shape=(width, length), fill_value=fill_value)
+    for i, array in enumerate(arrays):
+        result[i, : len(array)] = np.array(array)
+    return result
 
 
 def load_dataset__gph(dirpath_gph: str, dirpath_raw: str) -> tuple[np.ndarray, np.ndarray]:
@@ -153,24 +169,19 @@ def denormalize_x(x: np.ndarray, x_min: float, x_max: float) -> np.ndarray:
 
 
 def generate_model__raw() -> Sequential:
-    return Sequential([
-        Input(shape=(X_SHAPE_RAW, )),
-        Reshape((X_SHAPE_RAW, 1)),
-
-        Conv1D(filters=4, kernel_size=10, padding="same", activation="relu"),
-        MaxPooling1D(pool_size=2),
-
-        Conv1D(filters=8, kernel_size=10, padding="same", activation="relu"),
-        MaxPooling1D(pool_size=2),
-
-        Conv1D(filters=16, kernel_size=10, padding="same", activation="relu"),
-        MaxPooling1D(pool_size=2),
-
-        Flatten(),
-        Dense(128, activation="relu"),
-        Dropout(0.2),
-        Dense(Y_SHAPE, activation="linear")
-    ])
+    return Sequential(
+        [
+            Input(shape=(X_SHAPE_RAW,)),
+            Reshape((X_SHAPE_RAW, 1)),
+            # первый слой свёртки
+            Conv1D(filters=32, kernel_size=5, padding="same", activation="relu"),
+            MaxPooling1D(pool_size=2),
+            Flatten(),
+            Dense(128, activation="relu"),
+            Dropout(0.2),
+            Dense(Y_SHAPE, activation="linear"),
+        ]
+    )
 
 
 def generate_model__gph() -> Sequential:
