@@ -3,7 +3,8 @@ import os
 
 import numpy as np
 from keras import Sequential, Input
-from keras.src.layers import Dense, Dropout, Flatten, Conv2D, BatchNormalization, MaxPooling2D
+from keras.src.layers import Dense, Dropout, Flatten, Conv2D, BatchNormalization, MaxPooling2D, Conv1D, MaxPooling1D, \
+    Reshape
 from matplotlib.axes import Axes
 
 X_SHAPE_RAW = 4000
@@ -152,17 +153,24 @@ def denormalize_x(x: np.ndarray, x_min: float, x_max: float) -> np.ndarray:
 
 
 def generate_model__raw() -> Sequential:
-    return Sequential(
-        [
-            Input(shape=(X_SHAPE_RAW,)),
-            Dense(512),
-            Dropout(0.2),
-            Dense(256),
-            Dropout(0.2),
-            Dense(128),
-            Dense(Y_SHAPE, activation="linear"),
-        ]
-    )
+    return Sequential([
+        Input(shape=(X_SHAPE_RAW, )),
+        Reshape((X_SHAPE_RAW, 1)),
+
+        Conv1D(filters=4, kernel_size=10, padding="same", activation="relu"),
+        MaxPooling1D(pool_size=2),
+
+        Conv1D(filters=8, kernel_size=10, padding="same", activation="relu"),
+        MaxPooling1D(pool_size=2),
+
+        Conv1D(filters=16, kernel_size=10, padding="same", activation="relu"),
+        MaxPooling1D(pool_size=2),
+
+        Flatten(),
+        Dense(128, activation="relu"),
+        Dropout(0.2),
+        Dense(Y_SHAPE, activation="linear")
+    ])
 
 
 def generate_model__gph() -> Sequential:

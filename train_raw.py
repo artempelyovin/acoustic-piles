@@ -1,3 +1,4 @@
+import tensorflow as tf
 from keras.src.callbacks import ModelCheckpoint
 from keras.src.optimizers import Adam
 
