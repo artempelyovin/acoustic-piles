@@ -6,7 +6,7 @@ from utils import (
     generate_model__raw,
     load_dataset__raw,
     draw_acoustic_signal,
-    draw_zero_crossings,
+    draw_points,
     X_SHAPE_RAW,
 )
 
@@ -43,7 +43,7 @@ def main() -> None:
             f"Разница: {abs(real_count_points - predict_count_points)}"
         )
         draw_acoustic_signal(ax=ax, x=x, y=y)
-        draw_zero_crossings(ax=ax, zero_crossings_xs=Y, color="red", linestyle="dashdot", alpha=0.5)
+        draw_points(ax=ax, zero_crossings_xs=Y, color="red", linestyle="dashdot", alpha=0.5)
 
         plt.show()
 

@@ -21,71 +21,71 @@ X_SHAPE_GPH = (369, 496, 1)  # изображение размером 369x496 �
 Y_SHAPE = 1  # ответ - количество спец. нулевых точек
 
 
-def generate_parabola(
-    vertex: tuple[float, float], width: float, num_points: int = 500
-) -> tuple[np.ndarray, np.ndarray]:
+def _generate_simple_pulse_signal_without_noice(
+    fs: int = 1000,
+    duration: float = 1.0,
+    freq: float = 50,
+    decay: float = 5,
+    start_time: float = 0.1,
+    pulse_duration: float = 0.1,
+    reflection_delay: float = 0.3,
+    reflection_amp: float = 0.6,
+) -> tuple[np.ndarray, np.ndarray, float, float]:
     """
-    Рисует параболу с вершиной (h, k), где k > 0, ветви направлены вниз и график заканчивается при y = 0.
+    Генерация простейшего акустического сигнала (синусоида) + отражения.
 
     Параметры:
-      vertex     - кортеж (h, k), где h - абсцисса вершины, k - ордината вершины (обязательно k > 0)
-      width      - расстояние от вершины до точки пересечения оси y (где y = 0)
-      num_points - (опционально) число точек для построения графика (по умолчанию 500)
+    - fs: частота дискретизации, Гц
+    - duration: общая длительность сигнала, сек
+    - freq: частота основной синусоиды, Гц
+    - decay: коэффициент экспоненциального затухания
+    - start_time: время начала основного удара, сек
+    - pulse_duration: длительность основного импульса, сек
+    - reflection_delay: задержка отражения относительно удара, сек
+    - reflection_amp: коэффициент ослабления отражения
+
+    Возвращает:
+    - t: массив времени
+    - pulse: сигнал
+    - start_x: координата начала удара
+    - reflection_x: координата начала отражения
     """
-    h, k = vertex
-    if k < 0:
-        raise ValueError("Ордината вершины должна быть больше нуля (k > 0).")
-    if width <= 0:
-        raise ValueError("Параметр width должен быть положительным.")
+    t = np.linspace(0, duration, int(fs * duration), endpoint=False)
+    pulse = np.zeros_like(t)
 
-    # Вычисление коэффициента параболы a: a = - k / width^2 так, что f(h ± width) = 0.
-    a = -k / (width**2)
+    start_x = start_time
+    pulse_samples = int(pulse_duration * fs)
 
-    # Определяем диапазон по оси x от h - width до h + width
-    x = np.linspace(h - width, h + width, num_points)
-    y = a * (x - h) ** 2 + k
-    return x, y
+    start_idx = int(start_x * fs)
+
+    # Ограничение на длину импульса
+    if start_idx + pulse_samples > len(t):
+        pulse_samples = len(t) - start_idx
+
+    signal = np.sin(2 * np.pi * freq * t[:pulse_samples]) * np.exp(-decay * t[:pulse_samples])
+    pulse[start_idx : start_idx + pulse_samples] += signal
+
+    reflection_x = start_x + reflection_delay
+    reflection_idx = int(reflection_x * fs)
+
+    if reflection_idx + pulse_samples <= len(t):
+        pulse[reflection_idx : reflection_idx + pulse_samples] += reflection_amp * signal
+
+    return t, pulse, start_x, reflection_x
 
 
-def generate_acoustic_signal() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Генерирует "фейковый" акустический сигнал удара молотка по бетонной свае
-    :return: x, y координаты функции, изображающей сигнал и нулевые точки x, в которых функция меняет знак
-    """
-    segments = np.random.randint(15, 20)
-    y_coefficient = 1.0
-    cur_width = np.random.uniform(2, 5)
-    cur_y = np.random.uniform(70, 120)
-    cur_x = cur_width
-
-    x_all = []
-    y_all = []
-    zero_crossings = []
-    last_sign = "plus"
-
-    for segment in range(1, segments + 1):
-        cur_y *= y_coefficient - (segment / segments)
-        cur_y = max(cur_y, 0.75)
-        x, y = generate_parabola(vertex=(cur_x, cur_y), width=cur_width, num_points=100)
-        if np.random.random() < 0.5:  # Разворачиваем ветви параболы с вероятностью 50%
-            y = -y
-            cur_sign = "minus"
-        else:
-            cur_sign = "plus"
-
-        x_all.append(x)
-        y_all.append(y)
-        if cur_sign != last_sign:
-            zero_crossings.append(cur_x - cur_width)
-
-        new_width = cur_width + cur_width * 0.07
-        cur_x = cur_x + new_width + cur_width
-        cur_width = new_width
-        last_sign = cur_sign
-
-    if 0 in zero_crossings:  # порой попадает мусор в виде нуля, удаляем его
-        zero_crossings.remove(0)
-    return np.concatenate(x_all), np.concatenate(y_all), np.array(zero_crossings)
+def generate_simple_pulse_signal_without_noice() -> tuple[np.ndarray, np.ndarray, float, float]:
+    """Генерация простейшего акустического сигнала (синусоида) + отражения."""
+    return _generate_simple_pulse_signal_without_noice(
+        fs=1000,
+        duration=1.5,
+        freq=np.random.randint(35, 75),
+        decay=np.random.randint(3, 15),
+        start_time=np.random.uniform(0.05, 0.2),
+        pulse_duration=np.random.uniform(0.03, 0.1),
+        reflection_delay=np.random.uniform(0.25, 0.8),
+        reflection_amp=np.random.uniform(0.3, 0.8),
+    )
 
 
 def draw_acoustic_signal(ax: Axes, x: np.ndarray, y: np.ndarray) -> None:
@@ -93,11 +93,11 @@ def draw_acoustic_signal(ax: Axes, x: np.ndarray, y: np.ndarray) -> None:
     ax.axhline(0, color="black", linewidth=0.5)
 
 
-def draw_zero_crossings(
-    ax: Axes, zero_crossings_xs: np.ndarray, color: str = "red", linestyle: str = "dotted", alpha: float = 1.0
+def draw_points(
+    ax: Axes, start_x: float, reflection_x: float, color: str = "red", linestyle: str = "dotted", alpha: float = 1.0
 ) -> None:
-    for zero_crossings_x in zero_crossings_xs:
-        ax.axvline(x=zero_crossings_x, color=color, linestyle=linestyle, alpha=alpha)
+    ax.axvline(x=start_x, color=color, linestyle=linestyle, alpha=alpha)
+    ax.axvline(x=reflection_x, color=color, linestyle=linestyle, alpha=alpha)
 
 
 def load_dataset__raw(dirpath: str) -> tuple[list[list[float]], list[list[float]]]:

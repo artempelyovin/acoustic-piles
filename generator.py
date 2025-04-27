@@ -5,11 +5,11 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 
-from utils import generate_acoustic_signal, draw_acoustic_signal, draw_zero_crossings
+from utils import draw_acoustic_signal, generate_simple_pulse_signal_without_noice
 
 DATASET_SIZE = 5000
-FIG_DATASET_DIR = "datasets/fig_data"
-RAW_DATASET_DIR = "datasets/raw_data"
+FIG_DATASET_DIR = "datasets/1/fig_data"
+RAW_DATASET_DIR = "datasets/1/raw_data"
 INTERACTIVE_MODE = False
 
 
@@ -19,14 +19,14 @@ def save_fig(fig: Figure, filename: str) -> None:
     fig.savefig(f"{FIG_DATASET_DIR}/{filename}", bbox_inches="tight", pad_inches=0)
 
 
-def save_raw_data(x: np.ndarray, y: np.ndarray, zero_crossings_xs: np.ndarray, filename: str) -> None:
+def save_raw_data(x: np.ndarray, y: np.ndarray, start_x: float, reflection_x: float, filename: str) -> None:
     if not os.path.exists(RAW_DATASET_DIR):
         os.makedirs(RAW_DATASET_DIR, exist_ok=True)
     with open(f"{RAW_DATASET_DIR}/{filename}", "w") as f:
         points = np.column_stack((x, y)).reshape(-1)  # делаем массив точек формата [x1, y1, x2, y2, ..., xn, yn]
         points = {
             "points": points.tolist(),
-            "answers": zero_crossings_xs.tolist(),
+            "answers": [start_x, reflection_x],
         }
         json.dump(points, f, indent=4)
 
@@ -37,7 +37,7 @@ def main() -> None:
 
     i = 0
     while i < DATASET_SIZE:
-        x, y, zero_crossings_xs = generate_acoustic_signal()
+        x, y, start_x, reflection_x = generate_simple_pulse_signal_without_noice()
 
         fig, ax = plt.subplots()
         # убираем всё лишнее с графика
@@ -61,7 +61,7 @@ def main() -> None:
                 # сохраняем график без ответов
                 save_fig(fig, filename=f"{i + 1}.png")
                 # сохраняем сырые данные
-                save_raw_data(x=x, y=y, zero_crossings_xs=zero_crossings_xs, filename=f"{i + 1}.json")
+                save_raw_data(x=x, y=y, start_x=start_x, reflection_x=reflection_x, filename=f"{i + 1}.json")
                 plt.close()
                 i += 1
 
@@ -71,7 +71,7 @@ def main() -> None:
             # сохраняем график без ответов
             save_fig(fig, filename=f"{i + 1}.png")
             # сохраняем сырые данные
-            save_raw_data(x=x, y=y, zero_crossings_xs=zero_crossings_xs, filename=f"{i + 1}.json")
+            save_raw_data(x=x, y=y, start_x=start_x, reflection_x=reflection_x, filename=f"{i + 1}.json")
             plt.close()
             i += 1
 
