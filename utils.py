@@ -16,9 +16,9 @@ from keras.src.layers import (
 )
 from matplotlib.axes import Axes
 
-X_SHAPE_RAW = 4000
+X_SHAPE_RAW = 3000
 X_SHAPE_GPH = (369, 496, 1)  # изображение размером 369x496 в одноканале
-Y_SHAPE = 1  # ответ - количество спец. нулевых точек
+Y_SHAPE = 2  # ответ - количество точек в предсказании
 
 
 def _generate_simple_pulse_signal_without_noice(
@@ -106,7 +106,7 @@ def load_dataset__raw(dirpath: str) -> tuple[list[list[float]], list[list[float]
     :param dirpath: путь до датасета
     :return: X и Y значения, где:
         - X - точки функции в формате (x;y)
-        - Y - координаты x нулевых точек, в которых функция меняет знак
+        - Y - координаты x точек начала сигнала и отражения
     """
 
     def load_raw_file(filepath: str) -> tuple[list[float], list[float]]:

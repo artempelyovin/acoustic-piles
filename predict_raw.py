@@ -2,16 +2,13 @@ import numpy as np
 from keras import Sequential
 from matplotlib import pyplot as plt
 
-from utils import (
-    generate_model__raw,
-    load_dataset__raw,
-    draw_acoustic_signal,
-    draw_points,
-    X_SHAPE_RAW,
-)
+from utils import generate_model__raw, load_dataset__raw, draw_acoustic_signal, draw_points
 
-DATASET_DIR = "datasets/raw_data"
-WEIGHTS_PATH = "weights/raw/model_epoch_06_val_loss_3.70.h5"
+MODEL_TYPE = 1
+DATASET_DIR = f"datasets/{MODEL_TYPE}/raw_data"
+WEIGHTS_PATH = (
+    f"weights/{MODEL_TYPE}/raw/loss=mse__batch_size=32__epoch=0021__mse=0.01__mae=0.06__2025-04-27T18:23:41.h5"
+)
 
 
 def load_model(weights_path: str) -> Sequential:
@@ -28,22 +25,27 @@ def main() -> None:
     model = load_model(weights_path=WEIGHTS_PATH)
 
     for X, Y in zip(X_test, Y_test):
+        predict = model.predict(np.array([X]))[0]
+        start_x_predict, reflection_x_predict = predict
+
         fig, ax = plt.subplots()
 
         x = X[0::2]  # координата x - это все чётные элементы
         y = X[1::2]  # координата y - это все нечётные элементы
-        real_count_points = len(Y)
+        start_x, reflection_x = Y
 
-        # добили до нужного shape значение -1
-        X_extended = np.pad(X, (0, X_SHAPE_RAW - len(X)), mode="constant", constant_values=(0, -1))
-        predict_count_points = model.predict(np.array([X_extended]))[0]
-
-        print(
-            f"Дано {real_count_points}, получено {predict_count_points}. "
-            f"Разница: {abs(real_count_points - predict_count_points)}"
-        )
+        print(f"MAE точки начала: {abs(start_x - start_x_predict)}")
+        print(f"MAE таки отражения: {abs(reflection_x - reflection_x_predict)}")
         draw_acoustic_signal(ax=ax, x=x, y=y)
-        draw_points(ax=ax, zero_crossings_xs=Y, color="red", linestyle="dashdot", alpha=0.5)
+        draw_points(ax=ax, start_x=start_x, reflection_x=reflection_x, color="blue", linestyle="dashdot", alpha=0.5)
+        draw_points(
+            ax=ax,
+            start_x=start_x_predict,
+            reflection_x=reflection_x_predict,
+            color="red",
+            linestyle="dashdot",
+            alpha=0.5,
+        )
 
         plt.show()
 
