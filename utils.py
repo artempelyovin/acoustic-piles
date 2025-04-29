@@ -21,7 +21,7 @@ X_SHAPE_GPH = (369, 496, 1)  # изображение размером 369x496 �
 Y_SHAPE = 2  # ответ - количество точек в предсказании
 
 
-def _generate_simple_pulse_signal_without_noice(
+def _generate_simple_pulse_signal(
     fs: int = 1000,
     duration: float = 1.0,
     freq: float = 50,
@@ -30,6 +30,8 @@ def _generate_simple_pulse_signal_without_noice(
     pulse_duration: float = 0.1,
     reflection_delay: float = 0.3,
     reflection_amp: float = 0.6,
+    with_noise: bool = False,
+    noise_level: float | None = None,
 ) -> tuple[np.ndarray, np.ndarray, float, float]:
     """
     Генерация простейшего акустического сигнала (синусоида) + отражения.
@@ -43,6 +45,8 @@ def _generate_simple_pulse_signal_without_noice(
     - pulse_duration: длительность основного импульса, сек
     - reflection_delay: задержка отражения относительно удара, сек
     - reflection_amp: коэффициент ослабления отражения
+    - with_noise: добавлять ли шум к полученному сигналу?
+    - noise_level: уровень шума (в диапазоне [0;∞)), если with_noise=True
 
     Возвращает:
     - t: массив времени
@@ -71,12 +75,19 @@ def _generate_simple_pulse_signal_without_noice(
     if reflection_idx + pulse_samples <= len(t):
         pulse[reflection_idx : reflection_idx + pulse_samples] += reflection_amp * signal
 
+    if with_noise:
+        assert (
+            isinstance(noise_level, float) and noise_level >= 0.0
+        ), f"Необходимо указать noise_level в диапазоне [0;∞)"
+        noise = np.random.normal(0, noise_level, size=t.shape)
+        pulse += noise
+
     return t, pulse, start_x, reflection_x
 
 
 def generate_simple_pulse_signal_without_noice() -> tuple[np.ndarray, np.ndarray, float, float]:
     """Генерация простейшего акустического сигнала (синусоида) + отражения."""
-    return _generate_simple_pulse_signal_without_noice(
+    return _generate_simple_pulse_signal(
         fs=1000,
         duration=1.5,
         freq=np.random.randint(35, 75),
@@ -85,6 +96,23 @@ def generate_simple_pulse_signal_without_noice() -> tuple[np.ndarray, np.ndarray
         pulse_duration=np.random.uniform(0.03, 0.1),
         reflection_delay=np.random.uniform(0.25, 0.8),
         reflection_amp=np.random.uniform(0.3, 0.8),
+        with_noise=False,
+    )
+
+
+def generate_simple_pulse_signal_with_noice() -> tuple[np.ndarray, np.ndarray, float, float]:
+    """Генерация простейшего акустического сигнала (синусоида) + отражения + шум."""
+    return _generate_simple_pulse_signal(
+        fs=1000,
+        duration=1.5,
+        freq=np.random.randint(35, 75),
+        decay=np.random.randint(3, 15),
+        start_time=np.random.uniform(0.05, 0.2),
+        pulse_duration=np.random.uniform(0.03, 0.1),
+        reflection_delay=np.random.uniform(0.25, 0.8),
+        reflection_amp=np.random.uniform(0.3, 0.8),
+        with_noise=True,
+        noise_level=np.random.uniform(0.05, 0.15),
     )
 
 
@@ -173,10 +201,14 @@ def generate_model__raw() -> Sequential:
         [
             Input(shape=(X_SHAPE_RAW,)),
             Reshape((X_SHAPE_RAW, 1)),
-            # первый слой свёртки
-            Conv1D(filters=32, kernel_size=5, padding="same", activation="relu"),
+            Conv1D(32, 5, activation="relu", padding="same"),
+            Conv1D(64, 5, activation="relu", padding="same"),
+            MaxPooling1D(pool_size=2),
+            Conv1D(128, 5, activation="relu", padding="same"),
             MaxPooling1D(pool_size=2),
             Flatten(),
+            Dense(256, activation="relu"),
+            Dropout(0.3),
             Dense(128, activation="relu"),
             Dropout(0.2),
             Dense(Y_SHAPE, activation="linear"),

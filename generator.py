@@ -5,11 +5,12 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 
-from utils import draw_acoustic_signal, generate_simple_pulse_signal_without_noice
+from utils import draw_acoustic_signal, generate_simple_pulse_signal_with_noice
 
 DATASET_SIZE = 5000
-FIG_DATASET_DIR = "datasets/1/fig_data"
-RAW_DATASET_DIR = "datasets/1/raw_data"
+GENERATOR_FUNCTION = generate_simple_pulse_signal_with_noice
+FIG_DATASET_DIR = "datasets/2/fig_data"
+RAW_DATASET_DIR = "datasets/2/raw_data"
 INTERACTIVE_MODE = False
 
 
@@ -37,7 +38,7 @@ def main() -> None:
 
     i = 0
     while i < DATASET_SIZE:
-        x, y, start_x, reflection_x = generate_simple_pulse_signal_without_noice()
+        x, y, start_x, reflection_x = GENERATOR_FUNCTION()
 
         fig, ax = plt.subplots()
         # убираем всё лишнее с графика
