@@ -12,7 +12,7 @@ from utils import load_dataset__raw, generate_model__raw
 NOW = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
 # Настраиваемые константы
-MODEL_NUMBER = 1
+MODEL_NUMBER = 2
 MODEL_TYPE = "raw"
 LOSS = "MAE"
 EPOCHS = 250

@@ -4,10 +4,10 @@ from matplotlib import pyplot as plt
 
 from utils import generate_model__raw, load_dataset__raw, draw_acoustic_signal, draw_points
 
-MODEL_NUMBER = 1
+MODEL_NUMBER = 2
 MODEL_TYPE = 'raw'
 DATASET_DIR = f"datasets/{MODEL_NUMBER}/{MODEL_TYPE}_data"
-WEIGHTS_PATH = f"results/weights/{MODEL_NUMBER}/{MODEL_TYPE}/2025-04-30T11:59:28__loss=MAE__batch_size=32__epochs=250__epoch=0209__mse=0.0002__mae=0.0098.keras"
+WEIGHTS_PATH = f"results/weights/{MODEL_NUMBER}/{MODEL_TYPE}/2025-04-30T13:38:43__loss=MAE__batch_size=32__epochs=250__epoch=0232__mse=0.0002__mae=0.0099.keras"
 
 
 def load_model(weights_path: str) -> Sequential:
