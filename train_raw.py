@@ -1,20 +1,22 @@
 import json
 import os
+import uuid
 from datetime import datetime
 
 import numpy as np
-from keras.src.callbacks import ModelCheckpoint
+from keras.src.callbacks import ModelCheckpoint, EarlyStopping
 from keras.src.optimizers import Adam
 from matplotlib import pyplot as plt
 
 from utils import load_dataset__raw, generate_model__raw
 
 NOW = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+UUID = str(uuid.uuid4())[:4]
 
 # Настраиваемые константы
-MODEL_NUMBER = 3
+MODEL_NUMBER = 4
 MODEL_TYPE = "conv1d"  # (conv1d или conv2d)
-LEARNING_RATE = 0.0005
+LEARNING_RATE = 0.001
 LOSS = "mae"
 EPOCHS = 250
 BATCH_SIZE = 32
@@ -22,9 +24,7 @@ BATCH_SIZE = 32
 DATASET_SIZE = 5000
 DATASET_DIR = f"datasets/{MODEL_NUMBER}/raw_data"
 
-BASE_FILE_TEMPLATE = (
-    f"{NOW}__dataset_size={DATASET_SIZE}__loss={LOSS}__lr={LEARNING_RATE}__batch_size={BATCH_SIZE}__epochs={EPOCHS}"
-)
+BASE_FILE_TEMPLATE = f"{UUID}__{NOW}__dataset_size={DATASET_SIZE}__loss={LOSS}__lr={LEARNING_RATE}__batch_size={BATCH_SIZE}__epochs={EPOCHS}"
 
 HISTORY_FILE = f"results/history/{MODEL_NUMBER}/{MODEL_TYPE}/{BASE_FILE_TEMPLATE}.json"
 HISTORY_IMAGE_FILE = f"results/history/{MODEL_NUMBER}/{MODEL_TYPE}/{BASE_FILE_TEMPLATE}.png"
@@ -65,6 +65,7 @@ def main() -> None:
         validation_split=0.2,
         callbacks=[
             ModelCheckpoint(filepath=WEIGHT_FILE, monitor="val_loss", mode="min", save_best_only=True, verbose=1),
+            EarlyStopping(monitor="val_loss", patience=40, mode='min', restore_best_weights=True, verbose=1),
         ],
     )
 

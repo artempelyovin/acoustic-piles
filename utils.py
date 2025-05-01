@@ -225,7 +225,7 @@ def generate_complex_pulse_signal_with_noice() -> tuple[np.ndarray, np.ndarray, 
         reflection_amp=np.random.uniform(0.3, 0.8),
         distortion_level=np.random.uniform(0.02, 0.08),
         with_noise=True,
-        noise_level=np.random.uniform(0.05, 0.15),
+        noise_level=np.random.uniform(0.15, 0.25),
     )
 
 

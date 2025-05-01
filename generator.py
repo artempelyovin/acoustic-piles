@@ -5,11 +5,11 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 
-from utils import draw_acoustic_signal, generate_complex_pulse_signal_without_noice
+from utils import draw_acoustic_signal, generate_complex_pulse_signal_with_noice
 
-MODEL_NUMBER = 3
+MODEL_NUMBER = 4
 DATASET_SIZE = 5000
-GENERATOR_FUNCTION = generate_complex_pulse_signal_without_noice
+GENERATOR_FUNCTION = generate_complex_pulse_signal_with_noice
 FIG_DATASET_DIR = f"datasets/{MODEL_NUMBER}/fig_data"
 RAW_DATASET_DIR = f"datasets/{MODEL_NUMBER}/raw_data"
 INTERACTIVE_MODE = False
