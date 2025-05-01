@@ -1,19 +1,13 @@
 import numpy as np
-from keras import Sequential
+from keras import models, Sequential
 from matplotlib import pyplot as plt
 
-from utils import generate_model__raw, load_dataset__raw, draw_acoustic_signal, draw_points
+from utils import load_dataset__raw, draw_acoustic_signal, draw_points
 
 MODEL_NUMBER = 4
 MODEL_TYPE = "conv1d"
 DATASET_DIR = f"datasets/{MODEL_NUMBER}/raw_data"
-WEIGHTS_PATH = f"results/weights/{MODEL_NUMBER}/{MODEL_TYPE}/8da7__2025-05-01T17:35:06__dataset_size=5000__loss=mae__lr=0.0005__batch_size=32__epochs=250__epoch=0225__val_mse=0.00008__val_mae=0.00501.keras"
-
-
-def load_model(weights_path: str) -> Sequential:
-    model = generate_model__raw()
-    model.load_weights(weights_path)
-    return model
+WEIGHTS_PATH = f"results/weights/{MODEL_NUMBER}/{MODEL_TYPE}/220d__2025-05-01T19:30:46__dataset_size=5000__loss=mae__lr=0.001__batch_size=32__epochs=250__epoch=0148__val_mse=0.00021__val_mae=0.01053.keras"
 
 
 def main() -> None:
@@ -21,7 +15,9 @@ def main() -> None:
     split_index = int(0.8 * len(X))
     _, X_test = X[:split_index], X[split_index:]
     _, Y_test = Y[:split_index], Y[split_index:]
-    model = load_model(weights_path=WEIGHTS_PATH)
+
+    model: Sequential = models.load_model(WEIGHTS_PATH)
+    model.summary()
 
     for X, Y in zip(X_test, Y_test):
         predict = model.predict(np.array([X]))[0]
