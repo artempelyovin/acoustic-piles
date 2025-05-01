@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 from keras import Sequential, Input
+from keras.src.callbacks import Callback
 from keras.src.layers import (
     Dense,
     Dropout,
@@ -13,7 +14,9 @@ from keras.src.layers import (
     Conv1D,
     MaxPooling1D,
     Reshape,
+    GlobalAveragePooling1D,
 )
+from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 
 X_SHAPE_RAW = 3000
@@ -352,3 +355,36 @@ def generate_model__gph() -> Sequential:
             Dense(Y_SHAPE, activation="sigmoid"),
         ]
     )
+
+
+class HistoryToFile(Callback):
+    def __init__(self, history_file):
+        super().__init__()
+        self.history_file = history_file
+
+    def on_epoch_end(self, epoch, logs=None):
+        if not self.model.history.history:
+            return
+        with open(self.history_file, "w") as f:
+            json.dump(self.model.history.history, f, indent=4)
+
+
+class PlotHistory(Callback):
+    def __init__(self, image_file):
+        super().__init__()
+        self.image_file = image_file
+
+    def on_epoch_end(self, epoch, logs=None):
+        # Отсекаем первую эпоху, т.к. там очень большие ошибки
+        mse_history = self.model.history.history.get("mse", [])[1:]
+        mae_history = self.model.history.history.get("mae", [])[1:]
+
+        plt.figure()
+        plt.plot(mse_history, ".-", label="mse")
+        plt.plot(mae_history, ".-", label="mae")
+        plt.title("История обучения")
+        plt.xlabel("Эпоха")
+        plt.ylabel("Потеря")
+        plt.legend()
+        plt.savefig(self.image_file)
+        plt.close()  # Закрываем фигуру, чтобы не перегружать память
