@@ -12,19 +12,23 @@ from utils import load_dataset__raw, generate_model__raw
 NOW = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
 # Настраиваемые константы
-MODEL_NUMBER = 2
-MODEL_TYPE = "raw"
-LOSS = "MAE"
+MODEL_NUMBER = 3
+MODEL_TYPE = "conv1d"  # (conv1d или conv2d)
+LEARNING_RATE = 0.0005
+LOSS = "mae"
 EPOCHS = 250
 BATCH_SIZE = 32
 
-DATASET_DIR = f"datasets/{MODEL_NUMBER}/{MODEL_TYPE}_data"
+DATASET_SIZE = 5000
+DATASET_DIR = f"datasets/{MODEL_NUMBER}/raw_data"
 
-BASE_FILE_TEMPLATE = f"{NOW}__loss={LOSS}__batch_size={BATCH_SIZE}__epochs={EPOCHS}"
+BASE_FILE_TEMPLATE = (
+    f"{NOW}__dataset_size={DATASET_SIZE}__loss={LOSS}__lr={LEARNING_RATE}__batch_size={BATCH_SIZE}__epochs={EPOCHS}"
+)
 
 HISTORY_FILE = f"results/history/{MODEL_NUMBER}/{MODEL_TYPE}/{BASE_FILE_TEMPLATE}.json"
 HISTORY_IMAGE_FILE = f"results/history/{MODEL_NUMBER}/{MODEL_TYPE}/{BASE_FILE_TEMPLATE}.png"
-WEIGHT_FILE = f"results/weights/{MODEL_NUMBER}/{MODEL_TYPE}/{BASE_FILE_TEMPLATE}__epoch={{epoch:04d}}__mse={{mse:.4f}}__mae={{mae:.4f}}.keras"
+WEIGHT_FILE = f"results/weights/{MODEL_NUMBER}/{MODEL_TYPE}/{BASE_FILE_TEMPLATE}__epoch={{epoch:04d}}__val_mse={{val_mse:.5f}}__val_mae={{val_mae:.5f}}.keras"
 
 
 def create_dirs() -> None:
@@ -37,6 +41,10 @@ def main() -> None:
     create_dirs()
 
     X, Y = load_dataset__raw(DATASET_DIR)
+    if len(X) < DATASET_SIZE:
+        raise ValueError(f"Размер датасета ({len(X)} шт.) меньше желаемого ({DATASET_SIZE} шт.)")
+    X = X[:DATASET_SIZE]
+    Y = Y[:DATASET_SIZE]
     # X = expand_arrays_to_length(X, length=X_SHAPE_RAW, fill_value=-1)  # подгоняем всё под один размер, заполняя -1
     X = np.array(X)
     Y = np.array(Y)
@@ -46,7 +54,7 @@ def main() -> None:
     Y_train, Y_test = Y[:split_index], Y[split_index:]
 
     model = generate_model__raw()
-    model.compile(optimizer=Adam(learning_rate=0.001), loss=LOSS, metrics=["mse", "mae"])
+    model.compile(optimizer=Adam(learning_rate=LEARNING_RATE), loss=LOSS, metrics=["mse", "mae"])
     model.summary()
 
     history = model.fit(
