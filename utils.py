@@ -305,14 +305,6 @@ def load_dataset__raw(dirpath: str) -> tuple[list[list[float]], list[list[float]
     return all_x, all_y
 
 
-def expand_arrays_to_length(arrays: list[list], length: int, fill_value: float) -> np.ndarray:
-    width = len(arrays)
-    result = np.full(shape=(width, length), fill_value=fill_value)
-    for i, array in enumerate(arrays):
-        result[i, : len(array)] = np.array(array)
-    return result
-
-
 def load_dataset__gph(dirpath_gph: str, dirpath_raw: str) -> tuple[np.ndarray, np.ndarray]:
     """
     Загружает датасет изображений данных и датасет "сырых" данных
@@ -338,16 +330,6 @@ def load_dataset__gph(dirpath_gph: str, dirpath_raw: str) -> tuple[np.ndarray, n
         all_x.append(np.array(points))  # вход нейросети в виде точек [x1, y1, x2, y2, ..., xn, yn, 0, 0, ...., 0]
         all_y.append(answers)  # выход в виде координат x, где функция меняет знак
     return np.array(all_x), np.array(all_y)
-
-
-def normalize_x(x: np.ndarray) -> np.ndarray:
-    """Нормализует вектор чисел в диапазон [0;1]"""
-    return (x - x.min()) / (x.max() - x.min())
-
-
-def denormalize_x(x: np.ndarray, x_min: float, x_max: float) -> np.ndarray:
-    """Денормализует вектор чисел в диапазоне [0;1] обратно в диапазон [x_min;x_max]"""
-    return x * (x_max - x_min) + x_min
 
 
 def generate_model__raw() -> Sequential:
