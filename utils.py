@@ -523,5 +523,5 @@ class PlotHistory(Callback):
         plt.legend()
         plt.grid(True)
         plt.ylim(0, max(max(loss), max(val_loss)) * 1.1)  # Установка пределов по оси Y
-        plt.savefig(self.image_file)
+        plt.savefig(self.image_file, dpi=300)
         plt.close()  # Закрываем фигуру, чтобы не перегружать память
