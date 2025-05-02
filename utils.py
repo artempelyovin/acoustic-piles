@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Callable
 
 import numpy as np
 from keras import Sequential, Input
@@ -18,6 +19,7 @@ from keras.src.layers import (
 )
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
 X_SHAPE_RAW = 3000
 X_SHAPE_GPH = (369, 496, 1)  # изображение размером 369x496 в одноканале
@@ -232,16 +234,52 @@ def generate_complex_pulse_signal_with_noice() -> tuple[np.ndarray, np.ndarray, 
     )
 
 
+def get_generator_function_by_model_number(model_number: int) -> Callable:
+    """
+    Возвращает функцию генерации сигнала в зависимости от номера модели.
+    :param model_number: Номер модели, для которой требуется функция генерации.
+    """
+    generator_function_by_model_number = {
+        10: generate_simple_pulse_signal_without_noice,
+        20: generate_simple_pulse_signal_with_noice,
+        30: generate_complex_pulse_signal_without_noice,
+        40: generate_complex_pulse_signal_with_noice,
+    }
+    return generator_function_by_model_number[model_number]
+
+
 def draw_acoustic_signal(ax: Axes, x: np.ndarray, y: np.ndarray) -> None:
+    """Рисует акустический сигнал на заданной оси"""
     ax.plot(x, y, "black")
     ax.axhline(0, color="black", linewidth=0.5)
 
 
-def draw_points(
+def draw_level_lines(
     ax: Axes, start_x: float, reflection_x: float, color: str = "red", linestyle: str = "dotted", alpha: float = 1.0
 ) -> None:
+    """Рисует вертикальные линии уровня на заданной оси"""
     ax.axvline(x=start_x, color=color, linestyle=linestyle, alpha=alpha)
     ax.axvline(x=reflection_x, color=color, linestyle=linestyle, alpha=alpha)
+
+
+def save_acoustic_signal_as_image(fig: Figure, filename: str) -> None:
+    """Сохраняет акустический сигнал в виде изображения"""
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    fig.savefig(filename, bbox_inches="tight", pad_inches=0)
+
+
+def save_acoustic_signal_as_json(
+    x: np.ndarray, y: np.ndarray, start_x: float, reflection_x: float, filename: str
+) -> None:
+    """Сохраняет акустический сигнал в виде JSON файла"""
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    with open(filename, "w") as f:
+        points = np.column_stack((x, y)).reshape(-1)  # делаем массив точек формата [x1, y1, x2, y2, ..., xn, yn]
+        points = {
+            "points": points.tolist(),
+            "answers": [start_x, reflection_x],
+        }
+        json.dump(points, f, indent=4)
 
 
 def load_dataset__raw(dirpath: str) -> tuple[list[list[float]], list[list[float]]]:
@@ -376,15 +414,20 @@ class PlotHistory(Callback):
 
     def on_epoch_end(self, epoch, logs=None):
         # Отсекаем первую эпоху, т.к. там очень большие ошибки
-        mse_history = self.model.history.history.get("mse", [])[1:]
-        mae_history = self.model.history.history.get("mae", [])[1:]
+        loss = self.model.history.history.get("loss", [])[1:]
+        val_loss = self.model.history.history.get("val_loss", [])[1:]
+
+        if not loss or not val_loss:
+            return
 
         plt.figure()
-        plt.plot(mse_history, ".-", label="mse")
-        plt.plot(mae_history, ".-", label="mae")
-        plt.title("История обучения")
-        plt.xlabel("Эпоха")
-        plt.ylabel("Потеря")
+        plt.plot(loss, label="Training Loss")
+        plt.plot(val_loss, label="Validation Loss")
+        plt.title("Training and Validation Loss")
+        plt.xlabel("Epochs")
+        plt.ylabel("Loss")
         plt.legend()
+        plt.grid(True)
+        plt.ylim(0, max(max(loss), max(val_loss)) * 1.1)  # Установка пределов по оси Y
         plt.savefig(self.image_file)
         plt.close()  # Закрываем фигуру, чтобы не перегружать память

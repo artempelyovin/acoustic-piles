@@ -1,3 +1,4 @@
+import argparse
 import os
 import uuid
 from datetime import datetime
@@ -8,63 +9,45 @@ from keras.src.optimizers import Adam
 
 from utils import load_dataset__raw, generate_model__raw, HistoryToFile, PlotHistory
 
-NOW = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-UUID = str(uuid.uuid4())[:4]
 
-# Настраиваемые константы
-MODEL_NUMBER = 4
-MODEL_TYPE = "conv1d"  # (conv1d или conv2d)
-LEARNING_RATE = 0.001
-LOSS = "mae"
-EPOCHS = 250
-BATCH_SIZE = 32
+def train(model_number: int, learning_rate: float, loss: str, epochs: int, batch_size: int, dataset_size: int) -> None:
+    now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    uuid_ = str(uuid.uuid4())[:4]
 
-DATASET_SIZE = 5000
-DATASET_DIR = f"datasets/{MODEL_NUMBER}/raw_data"
+    base_file_template = f"{uuid_}__{now}__dataset_size={dataset_size}__loss={loss}__lr={learning_rate}__batch_size={batch_size}__epochs={epochs}"
+    history_file = f"results/history/{model_number}/conv1d/{base_file_template}.json"
+    history_image_file = f"results/history/{model_number}/conv1d/{base_file_template}.png"
+    weight_file = f"results/weights/{model_number}/conv1d/{base_file_template}__epoch={{epoch:04d}}__val_loss={{val_loss:.6f}}.keras"
+    dataset_dir = f"datasets/{model_number}/raw_data"
 
-BASE_FILE_TEMPLATE = f"{UUID}__{NOW}__dataset_size={DATASET_SIZE}__loss={LOSS}__lr={LEARNING_RATE}__batch_size={BATCH_SIZE}__epochs={EPOCHS}"
+    os.makedirs(os.path.dirname(history_file), exist_ok=True)
+    os.makedirs(os.path.dirname(history_image_file), exist_ok=True)
+    os.makedirs(os.path.dirname(weight_file), exist_ok=True)
 
-HISTORY_FILE = f"results/history/{MODEL_NUMBER}/{MODEL_TYPE}/{BASE_FILE_TEMPLATE}.json"
-HISTORY_IMAGE_FILE = f"results/history/{MODEL_NUMBER}/{MODEL_TYPE}/{BASE_FILE_TEMPLATE}.png"
-WEIGHT_FILE = f"results/weights/{MODEL_NUMBER}/{MODEL_TYPE}/{BASE_FILE_TEMPLATE}__epoch={{epoch:04d}}__val_mse={{val_mse:.5f}}__val_mae={{val_mae:.5f}}.keras"
+    X, Y = load_dataset__raw(dataset_dir)
+    if len(X) < dataset_size:
+        raise ValueError(f"Размер датасета ({len(X)} шт.) меньше желаемого ({dataset_dir} шт.)")
 
-
-def create_dirs() -> None:
-    os.makedirs(os.path.dirname(HISTORY_FILE), exist_ok=True)
-    os.makedirs(os.path.dirname(HISTORY_IMAGE_FILE), exist_ok=True)
-    os.makedirs(os.path.dirname(WEIGHT_FILE), exist_ok=True)
-
-
-def main() -> None:
-    create_dirs()
-
-    X, Y = load_dataset__raw(DATASET_DIR)
-    if len(X) < DATASET_SIZE:
-        raise ValueError(f"Размер датасета ({len(X)} шт.) меньше желаемого ({DATASET_SIZE} шт.)")
-    X = X[:DATASET_SIZE]
-    Y = Y[:DATASET_SIZE]
-    # X = expand_arrays_to_length(X, length=X_SHAPE_RAW, fill_value=-1)  # подгоняем всё под один размер, заполняя -1
-    X = np.array(X)
-    Y = np.array(Y)
-
+    X = np.array(X[:dataset_size])
+    Y = np.array(Y[:dataset_size])
     split_index = int(0.8 * len(X))
     X_train, X_test = X[:split_index], X[split_index:]
     Y_train, Y_test = Y[:split_index], Y[split_index:]
 
     model = generate_model__raw()
-    model.compile(optimizer=Adam(learning_rate=LEARNING_RATE), loss=LOSS, metrics=["mse", "mae"])
+    model.compile(optimizer=Adam(learning_rate=learning_rate), loss=loss)
     model.summary()
 
     model.fit(
         X_train,
         Y_train,
-        epochs=EPOCHS,
-        batch_size=BATCH_SIZE,
+        epochs=epochs,
+        batch_size=batch_size,
         validation_split=0.2,
         callbacks=[
-            ModelCheckpoint(filepath=WEIGHT_FILE, monitor="val_loss", mode="min", save_best_only=True, verbose=1),
-            HistoryToFile(history_file=HISTORY_FILE),
-            PlotHistory(image_file=HISTORY_IMAGE_FILE),
+            ModelCheckpoint(filepath=weight_file, monitor="val_loss", mode="min", save_best_only=True, verbose=1),
+            HistoryToFile(history_file=history_file),
+            PlotHistory(image_file=history_image_file),
         ],
     )
 
@@ -72,4 +55,20 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Обучение нейронной сети для выбранной модели на сырых данных")
+    parser.add_argument("--model-number", type=int, choices=[10, 20, 30, 40], required=True, help="Номер модели.")
+    parser.add_argument("--learning-rate", type=int, default=0.001, help="...")
+    parser.add_argument("--loss", type=str, default="mae", help="...")
+    parser.add_argument("--epochs", type=int, default=250, help="...")
+    parser.add_argument("--batch-size", type=int, default=32, help="...")
+    parser.add_argument("--dataset-size", type=int, default=5000, help="...")
+
+    args = parser.parse_args()
+    train(
+        model_number=args.model_number,
+        learning_rate=args.learning_rate,
+        loss=args.loss,
+        epochs=args.epochs,
+        batch_size=args.batch_size,
+        dataset_size=args.dataset_size,
+    )
