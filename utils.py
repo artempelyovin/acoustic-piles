@@ -346,14 +346,14 @@ def get_generator_function_by_model_number(model_number: int) -> Callable:
 
 def draw_acoustic_signal(ax: Axes, x: np.ndarray, y: np.ndarray) -> None:
     """Рисует акустический сигнал на заданной оси"""
-    ax.plot(x, y, "black")
+    ax.plot(x, y, "black", linewidth=0.5)
     ax.axhline(0, color="black", linewidth=0.5)
 
 
 def save_acoustic_signal_as_image(fig: Figure, filename: str) -> None:
     """Сохраняет акустический сигнал в виде изображения"""
     os.makedirs(os.path.dirname(filename), exist_ok=True)
-    fig.savefig(filename, bbox_inches="tight", pad_inches=0)
+    fig.savefig(filename, bbox_inches="tight", dpi=300, pad_inches=0)
 
 
 def save_acoustic_signal_as_json(
