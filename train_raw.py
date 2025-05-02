@@ -7,7 +7,7 @@ import numpy as np
 from keras.src.callbacks import ModelCheckpoint
 from keras.src.optimizers import Adam
 
-from utils import load_dataset__raw, generate_model__raw, HistoryToFile, PlotHistory
+from utils import load_dataset__raw, generate_model__raw, HistoryToFile, PlotHistory, X_SHAPE_RAW
 
 
 def train(model_number: int, learning_rate: float, loss: str, epochs: int, batch_size: int, dataset_size: int) -> None:
@@ -30,6 +30,11 @@ def train(model_number: int, learning_rate: float, loss: str, epochs: int, batch
 
     X = np.array(X[:dataset_size])
     Y = np.array(Y[:dataset_size])
+
+    # нормализуем все координаты в диапазон [0;1]
+    X[:, 0::2] = (X[:, 0::2] - 0) / (X_SHAPE_RAW / 2 - 0)
+    Y[:, ] = (Y[:, ] - 0) / (X_SHAPE_RAW / 2 - 0)
+
     split_index = int(0.8 * len(X))
     X_train, X_test = X[:split_index], X[split_index:]
     Y_train, Y_test = Y[:split_index], Y[split_index:]
