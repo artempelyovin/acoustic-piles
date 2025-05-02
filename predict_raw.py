@@ -4,7 +4,7 @@ import numpy as np
 from keras import models, Sequential
 from matplotlib import pyplot as plt
 
-from utils import draw_acoustic_signal, get_generator_function_by_model_number
+from utils import draw_acoustic_signal, get_generator_function_by_model_number, normalize, denormalize
 
 
 def prediction(model_number: int, weights_path: str) -> None:
@@ -15,11 +15,25 @@ def prediction(model_number: int, weights_path: str) -> None:
 
     while True:
         x, y, start_x, reflection_x = generate_pulse_signal()
+        x = np.array(x)
+        y = np.array(y)
 
-        model_input = np.column_stack((x, y)).reshape(-1)  # делаем массив точек формата [x1, y1, x2, y2, ..., xn, yn]
+        # нормализуем
+        x_min, x_max = x.min(), x.max()
+        x_normalize = normalize(x)
+        y_normalize = normalize(y)
+
+        # [x1, x2, ..., xn], [y1, y2, ..., yn] --> [x1, y1, x2, y2, ..., xn, yn]
+        model_input = np.empty((2 * x_normalize.shape[0],), dtype=x_normalize.dtype)
+        model_input[0::2] = x_normalize
+        model_input[1::2] = y_normalize
+
+        # предсказание
         predict = model.predict(np.array([model_input]), verbose=0)[0]
+        predict = denormalize(predict, x_min=x_min, x_max=x_max)
         start_x_predict, reflection_x_predict = predict
 
+        # расчёт ошибок
         mae_1_point = abs(start_x - start_x_predict)
         mae_2_point = abs(reflection_x - reflection_x_predict)
 

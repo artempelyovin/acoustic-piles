@@ -386,35 +386,38 @@ def save_acoustic_signal_as_json(
     """Сохраняет акустический сигнал в виде JSON файла"""
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, "w") as f:
-        points = np.column_stack((x, y)).reshape(-1)  # делаем массив точек формата [x1, y1, x2, y2, ..., xn, yn]
         points = {
-            "points": points.tolist(),
+            "x": x.tolist(),
+            "y": y.tolist(),
             "answers": [start_x, reflection_x],
         }
         json.dump(points, f, indent=4)
 
 
-def load_dataset__raw(dirpath: str) -> tuple[list[list[float]], list[list[float]]]:
+def load_dataset__raw(dirpath: str) -> tuple[list[list[float]], list[list[float]], list[list[float]]]:
     """
     Загружает датасет "сырых" (в формате json) данных
     :param dirpath: путь до датасета
-    :return: X и Y значения, где:
-        - X - точки функции в формате (x;y)
-        - Y - координаты x точек начала сигнала и отражения
+    :return: tuple(X, Y, answers), где:
+        - X - x-координаты функции
+        - X - y-координаты функции
+        - answers - координаты двух x точек - начала сигнала и отражения
     """
 
-    def load_raw_file(filepath: str) -> tuple[list[float], list[float]]:
+    def load_raw_file(filepath: str) -> tuple[list[float], list[float], list[float]]:
         with open(filepath, "r") as f:
             data = json.load(f)
-            return data["points"], data["answers"]
+            return data["x"], data["y"], data["answers"]
 
     all_x = []
     all_y = []
+    all_answers = []
     for path_ in os.listdir(dirpath):
-        points, answers = load_raw_file(f"{dirpath}/{path_}")
-        all_x.append(points)  # вход нейросети в виде точек [x1, y1, x2, y2, ..., xn, yn]
-        all_y.append(answers)  # выход в виде координат x, где функция меняет знак
-    return all_x, all_y
+        x, y, answers = load_raw_file(f"{dirpath}/{path_}")
+        all_x.append(x)
+        all_y.append(y)
+        all_answers.append(answers)
+    return all_x, all_y, all_answers
 
 
 def load_dataset__gph(dirpath_gph: str, dirpath_raw: str) -> tuple[np.ndarray, np.ndarray]:
@@ -442,6 +445,19 @@ def load_dataset__gph(dirpath_gph: str, dirpath_raw: str) -> tuple[np.ndarray, n
         all_x.append(np.array(points))  # вход нейросети в виде точек [x1, y1, x2, y2, ..., xn, yn, 0, 0, ...., 0]
         all_y.append(answers)  # выход в виде координат x, где функция меняет знак
     return np.array(all_x), np.array(all_y)
+
+
+def normalize(x: np.ndarray, x_min: float | int | None = None, x_max: float | int | None = None) -> np.ndarray:
+    """Нормализует вектор чисел в диапазон [0;1]"""
+    if x_min is not None or x_max is not None:
+        assert isinstance(x_min, float | int) and isinstance(x_max, float | int)
+        return (x - x_min) / (x_max - x_min)
+    return (x - x.min()) / (x.max() - x.min())
+
+
+def denormalize(x: np.ndarray, x_min: float, x_max: float) -> np.ndarray:
+    """Денормализует вектор чисел в диапазоне [0;1] обратно в диапазон [x_min;x_max]"""
+    return x * (x_max - x_min) + x_min
 
 
 def generate_model__raw() -> Sequential:

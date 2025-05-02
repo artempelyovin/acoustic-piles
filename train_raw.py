@@ -7,42 +7,64 @@ import numpy as np
 from keras.src.callbacks import ModelCheckpoint
 from keras.src.optimizers import Adam
 
-from utils import load_dataset__raw, generate_model__raw, HistoryToFile, PlotHistory, X_SHAPE_RAW
+from utils import load_dataset__raw, generate_model__raw, HistoryToFile, PlotHistory, normalize
 
 
 def train(model_number: int, learning_rate: float, loss: str, epochs: int, batch_size: int, dataset_size: int) -> None:
     now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     uuid_ = str(uuid.uuid4())[:4]
 
+    # шаблоны путей
     base_file_template = f"{uuid_}__{now}__dataset_size={dataset_size}__loss={loss}__lr={learning_rate}__batch_size={batch_size}__epochs={epochs}"
     history_file = f"results/history/{model_number}/conv1d/{base_file_template}.json"
     history_image_file = f"results/history/{model_number}/conv1d/{base_file_template}.png"
     weight_file = f"results/weights/{model_number}/conv1d/{base_file_template}__epoch={{epoch:04d}}__val_loss={{val_loss:.6f}}.keras"
     dataset_dir = f"datasets/{model_number}/raw_data"
 
+    # создаём директории (если ещё не созданы)
     os.makedirs(os.path.dirname(history_file), exist_ok=True)
     os.makedirs(os.path.dirname(history_image_file), exist_ok=True)
     os.makedirs(os.path.dirname(weight_file), exist_ok=True)
 
-    X, Y = load_dataset__raw(dataset_dir)
+    # грузим датасет и проверяем размерности
+    X, Y, ANSWERS = load_dataset__raw(dataset_dir)
+    assert (
+        len(X) == len(Y) == len(ANSWERS)
+    ), f"Разные длины векторов X ({len(X)}, Y ({len(Y)}) и ANSWERS ({len(ANSWERS)})"
+    assert len(X[0]) == len(Y[0]), f"Разная размерность X[0] ({len(X[0])}) и Y[0] ({len(Y[0])})"
     if len(X) < dataset_size:
-        raise ValueError(f"Размер датасета ({len(X)} шт.) меньше желаемого ({dataset_dir} шт.)")
+        raise ValueError(f"Размер датасета ({len(X)} шт.) меньше желаемого ({dataset_size} шт.)")
 
+    # обрезаем до dataset_size
     X = np.array(X[:dataset_size])
     Y = np.array(Y[:dataset_size])
+    ANSWERS = np.array(ANSWERS[:dataset_size])
 
-    # нормализуем все координаты в диапазон [0;1]
-    X[:, 0::2] = (X[:, 0::2] - 0) / (X_SHAPE_RAW / 2 - 0)
-    Y[:, ] = (Y[:, ] - 0) / (X_SHAPE_RAW / 2 - 0)
+    # нормализуем всё в диапазон [0;1]
+    for i in range(len(X)):
+        ANSWERS[i] = normalize(ANSWERS[i], x_min=X[i].min(), x_max=X[i].max())  # нормализуем относительно вектора X[i]!
+        X[i] = normalize(X[i])
+        Y[i] = normalize(Y[i])
 
+    # [x1, x2, ..., xn], [y1, y2, ..., yn] --> [x1, y1, x2, y2, ..., xn, yn]
+    NEW_X = np.empty((X.shape[0], 2 * X.shape[1]), dtype=X.dtype)
+    NEW_X[:, 0::2] = X
+    NEW_X[:, 1::2] = Y
+
+    X = NEW_X  # вход нейросети
+    Y = ANSWERS  # выход нейросети
+
+    # разбитие на обучающую и тестовую выборки
     split_index = int(0.8 * len(X))
     X_train, X_test = X[:split_index], X[split_index:]
     Y_train, Y_test = Y[:split_index], Y[split_index:]
 
+    # подготовка модели
     model = generate_model__raw()
     model.compile(optimizer=Adam(learning_rate=learning_rate), loss=loss)
     model.summary()
 
+    # обучение
     model.fit(
         X_train,
         Y_train,
@@ -56,6 +78,7 @@ def train(model_number: int, learning_rate: float, loss: str, epochs: int, batch
         ],
     )
 
+    # проверка на тестовом датасете
     model.evaluate(X_test, Y_test)
 
 
