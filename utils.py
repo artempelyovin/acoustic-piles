@@ -41,23 +41,21 @@ def _generate_simple_pulse_signal(
     """
     Генерация простейшего акустического сигнала (синусоида) + отражения
 
-    Параметры:
-    - fs: частота дискретизации, Гц
-    - duration: общая длительность сигнала, сек
-    - frequency: частота основной синусоиды, Гц
-    - decay: коэффициент экспоненциального затухания
-    - start_time: время начала основного удара, сек
-    - pulse_duration: длительность основного импульса, сек
-    - reflection_delay: задержка отражения относительно удара, сек
-    - reflection_amp: коэффициент ослабления отражения
-    - with_noise: добавлять ли шум к полученному сигналу?
-    - noise_level: стандартное отклонение шума (при with_noise=True)
+    :param fs: частота дискретизации, Гц
+    :param duration: общая длительность сигнала, сек
+    :param frequency: частота основной синусоиды, Гц
+    :param decay: коэффициент экспоненциального затухания
+    :param start_time: время начала основного удара, сек
+    :param pulse_duration: длительность основного импульса, сек
+    :param reflection_delay: задержка отражения относительно удара, сек
+    :param reflection_amp: коэффициент ослабления отражения
+    :param with_noise: добавлять ли шум к полученному сигналу?
+    :param noise_level: стандартное отклонение шума (при with_noise=True)
 
-    Возвращает:
-    - t: массив времени
-    - pulse: сигнал
-    - start_x: координата начала удара
-    - reflection_x: координата начала отражения
+    :return t: массив времени
+    :return pulse: сигнал
+    :return start_x: координата начала удара
+    :return reflection_x: координата начала отражения
     """
     t = np.linspace(0, duration, int(fs * duration), endpoint=False)
     pulse = np.zeros_like(t)
@@ -137,24 +135,22 @@ def _generate_complex_pulse_signal(
     """
     Генерация сложного акустического сигнала (сумма затухающих синусоид) + отражения
 
-    Параметры:
-    - fs: частота дискретизации, Гц
-    - duration: общая длительность сигнала, сек
-    - frequencies: список частот для композиции сигнала, Гц
-    - decay: коэффициент экспоненциального затухания
-    - start_time: время начала основного удара, сек
-    - pulse_duration: длительность основного импульса, сек
-    - reflection_delay: задержка отражения относительно удара, сек
-    - reflection_amp: коэффициент ослабления отражения
-    - distortion_level: уровень искажения отражения (Гауссов шум)
-    - with_noise: добавлять ли шум к полученному сигналу?
-    - noise_level: стандартное отклонение шума (при with_noise=True)
+    :param fs: частота дискретизации, Гц
+    :param duration: общая длительность сигнала, сек
+    :param frequencies: список частот для композиции сигнала, Гц
+    :param decay: коэффициент экспоненциального затухания
+    :param start_time: время начала основного удара, сек
+    :param pulse_duration: длительность основного импульса, сек
+    :param reflection_delay: задержка отражения относительно удара, сек
+    :param reflection_amp: коэффициент ослабления отражения
+    :param distortion_level: уровень искажения отражения (Гауссов шум)
+    :param with_noise: добавлять ли шум к полученному сигналу?
+    :param noise_level: стандартное отклонение шума (при with_noise=True)
 
-    Возвращает:
-    - t: массив времени
-    - pulse: сигнал
-    - start_x: координата начала удара (сек)
-    - reflection_x: координата начала отражения (сек)
+    :return t: массив времени
+    :return pulse: сигнал
+    :return start_x: координата начала удара (сек)
+    :return reflection_x: координата начала отражения (сек)
     """
     t = np.linspace(0, duration, int(fs * duration), endpoint=False)
     pulse = np.zeros_like(t)
@@ -234,9 +230,107 @@ def generate_complex_pulse_signal_with_noice() -> tuple[np.ndarray, np.ndarray, 
     )
 
 
+def _generate_gaussian_pulse_signal(
+    fs: int = 1000,
+    duration: float = 1.0,
+    start_time: float = 0.1,
+    pulse_duration: float = 0.05,
+    reflection_delay: float = 0.3,
+    distortion_level: float = 0.05,
+    num_false_echoes: int = 2,
+    with_noise: bool = False,
+    noise_level: float | None = None,
+) -> tuple[np.ndarray, np.ndarray, float, float]:
+    """
+    Генерация рандомизированного сигнала (гауссовые огибающие) + отражение
+
+    :param fs: частота дискретизации, Гц
+    :param duration: общая длительность сигнала, сек
+    :param start_time: время начала основного удара, сек
+    :param pulse_duration: длительность основного импульса, сек
+    :param reflection_delay: задержка отражения относительно удара, сек
+    :param distortion_level: уровень искажения отражения
+    :param num_false_echoes: количества ложных всплесков
+    :param with_noise: добавлять ли шум к полученному сигналу?
+    :param noise_level: стандартное отклонение шума (при with_noise=True)
+
+    :return t: массив времени
+    :return pulse: сигнал
+    :return start_x: координата начала удара (сек)
+    :return reflection_x: координата начала отражения (сек)
+    """
+    t = np.linspace(0, duration, int(fs * duration), endpoint=False)
+    pulse = np.zeros_like(t)
+
+    start_x = start_time
+    pulse_samples = int(pulse_duration * fs)
+    center = pulse_samples // 2
+    std_dev = pulse_samples / 6
+
+    start_idx = int(start_x * fs)
+    gauss = np.exp(-0.5 * ((np.arange(pulse_samples) - center) / std_dev) ** 2)
+    gauss *= np.random.uniform(0.8, 1.2)
+    pulse[start_idx : start_idx + pulse_samples] += gauss
+
+    reflection_x = start_time + reflection_delay
+    reflection_idx = int(reflection_delay * fs)
+    reflection_amp = np.random.uniform(0.3, 0.7)
+    distortion = np.random.normal(0, distortion_level, size=pulse_samples)
+    reflected = reflection_amp * (gauss + distortion)
+    if reflection_idx + pulse_samples < len(pulse):
+        pulse[reflection_idx : reflection_idx + pulse_samples] += reflected
+
+    # Ложные всплески
+    for _ in range(num_false_echoes):
+        false_idx = np.random.randint(0, len(t) - pulse_samples)
+        if abs(false_idx - start_idx) > pulse_samples and abs(false_idx - reflection_idx) > pulse_samples:
+            false_pulse = np.exp(-0.5 * ((np.arange(pulse_samples) - center) / std_dev) ** 2)
+            false_pulse *= np.random.uniform(0.2, 0.5)
+            pulse[false_idx : false_idx + pulse_samples] += false_pulse
+
+    if with_noise:
+        assert (
+            isinstance(noise_level, float) and noise_level >= 0.0
+        ), f"Необходимо указать noise_level в диапазоне [0;∞)"
+        noise = np.random.normal(0, noise_level, size=t.shape)
+        pulse += noise
+
+    return t, pulse, start_x, reflection_x
+
+
+def generate_gaussian_pulse_signal_without_noise() -> tuple[np.ndarray, np.ndarray, float, float]:
+    """Генерация рандомизированного сигнала (гауссовые огибающие) + отражение"""
+    return _generate_gaussian_pulse_signal(
+        fs=1000,
+        duration=1.5,
+        start_time=np.random.uniform(0.05, 0.2),
+        pulse_duration=np.random.uniform(0.03, 0.1),
+        reflection_delay=np.random.uniform(0.25, 0.8),
+        distortion_level=np.random.uniform(0.02, 0.08),
+        num_false_echoes=np.random.randint(1, 6),
+        with_noise=False,
+    )
+
+
+def generate_gaussian_pulse_signal_with_noise() -> tuple[np.ndarray, np.ndarray, float, float]:
+    """Генерация рандомизированного сигнала (гауссовые огибающие) + отражение + шум"""
+    return _generate_gaussian_pulse_signal(
+        fs=1000,
+        duration=1.5,
+        start_time=np.random.uniform(0.05, 0.2),
+        pulse_duration=np.random.uniform(0.03, 0.1),
+        reflection_delay=np.random.uniform(0.25, 0.8),
+        distortion_level=np.random.uniform(0.02, 0.08),
+        num_false_echoes=np.random.randint(1, 6),
+        with_noise=True,
+        noise_level=np.random.uniform(0.05, 0.15),
+    )
+
+
 def get_generator_function_by_model_number(model_number: int) -> Callable:
     """
     Возвращает функцию генерации сигнала в зависимости от номера модели.
+
     :param model_number: Номер модели, для которой требуется функция генерации.
     """
     generator_function_by_model_number = {
@@ -244,6 +338,8 @@ def get_generator_function_by_model_number(model_number: int) -> Callable:
         20: generate_simple_pulse_signal_with_noice,
         30: generate_complex_pulse_signal_without_noice,
         40: generate_complex_pulse_signal_with_noice,
+        50: generate_gaussian_pulse_signal_without_noise,
+        60: generate_gaussian_pulse_signal_with_noise,
     }
     return generator_function_by_model_number[model_number]
 
@@ -252,14 +348,6 @@ def draw_acoustic_signal(ax: Axes, x: np.ndarray, y: np.ndarray) -> None:
     """Рисует акустический сигнал на заданной оси"""
     ax.plot(x, y, "black")
     ax.axhline(0, color="black", linewidth=0.5)
-
-
-def draw_level_lines(
-    ax: Axes, start_x: float, reflection_x: float, color: str = "red", linestyle: str = "dotted", alpha: float = 1.0
-) -> None:
-    """Рисует вертикальные линии уровня на заданной оси"""
-    ax.axvline(x=start_x, color=color, linestyle=linestyle, alpha=alpha)
-    ax.axvline(x=reflection_x, color=color, linestyle=linestyle, alpha=alpha)
 
 
 def save_acoustic_signal_as_image(fig: Figure, filename: str) -> None:

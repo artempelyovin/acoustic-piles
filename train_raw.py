@@ -56,7 +56,9 @@ def train(model_number: int, learning_rate: float, loss: str, epochs: int, batch
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Обучение нейронной сети для выбранной модели на сырых данных")
-    parser.add_argument("--model-number", type=int, choices=[10, 20, 30, 40], required=True, help="Номер модели.")
+    parser.add_argument(
+        "--model-number", type=int, choices=[10, 20, 30, 40, 50, 60], required=True, help="Номер модели."
+    )
     parser.add_argument("--learning-rate", type=int, default=0.001, help="...")
     parser.add_argument("--loss", type=str, default="mae", help="...")
     parser.add_argument("--epochs", type=int, default=250, help="...")
