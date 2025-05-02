@@ -456,9 +456,9 @@ def generate_model__raw() -> Sequential:
             MaxPooling1D(pool_size=2),
             Flatten(),
             Dense(256, activation="relu"),
-            Dropout(0.3),
+            # Dropout(0.3),
             Dense(128, activation="relu"),
-            Dropout(0.2),
+            # Dropout(0.2),
             Dense(Y_SHAPE, activation="linear"),
         ]
     )
