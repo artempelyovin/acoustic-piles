@@ -368,6 +368,13 @@ def get_generator_function_by_model_number(model_number: int) -> Callable:
     return generator_function_by_model_number[model_number]
 
 
+def set_plt_style() -> None:
+    plt.style.use("seaborn-v0_8-paper")
+    plt.rcParams["font.family"] = "Times New Roman"
+    plt.rcParams["font.size"] = 12
+    plt.rcParams["axes.grid"] = True
+
+
 def draw_acoustic_signal(ax: Axes, x: np.ndarray, y: np.ndarray) -> None:
     """Рисует акустический сигнал на заданной оси"""
     ax.plot(x, y, "black", linewidth=0.5)
