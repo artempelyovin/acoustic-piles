@@ -56,7 +56,7 @@ def prediction(model_number: int, weights_path: str, num_samples: int, interacti
                 plt.close()
                 return
 
-            fig, ax = plt.subplots()
+            fig, ax = plt.subplots(figsize=(17, 7))
             fig.canvas.manager.set_window_title(title)
             plt.title(f"{mae_1_point_str}\n{mae_2_point_str}\n{mae_common_str}", fontsize=10)
             draw_acoustic_signal(ax=ax, x=x, y=y)
