@@ -11,8 +11,10 @@ from utils import (
 
 
 def generator(model_number: int, dataset_size: int, interactive_mode: bool) -> None:
-    fig_dataset_dir = f"datasets/{model_number}/fig_data"
-    raw_dataset_dir = f"datasets/{model_number}/raw_data"
+    assert len(str(model_number)) == 2, f"model_number должен состоять из 2-х цифр"
+    model_dir = f"{str(model_number)[0]}_"
+    fig_dataset_dir = f"datasets/{model_dir}/fig_data"
+    raw_dataset_dir = f"datasets/{model_dir}/raw_data"
     generate_pulse_signal = get_generator_function_by_model_number(model_number)
 
     if interactive_mode:
@@ -66,7 +68,7 @@ def generator(model_number: int, dataset_size: int, interactive_mode: bool) -> N
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Генерация акустических сигналов.")
     parser.add_argument(
-        "--model-number", type=int, choices=[10, 20, 30, 40, 50, 60], required=True, help="Номер модели."
+        "--model-number", type=int, choices=[10, 20, 30, 40], required=True, help="Номер модели."
     )
     parser.add_argument("--dataset-size", type=int, default=5000, help="Размер датасета (по умолчанию 5000).")
     parser.add_argument("--interactive-mode", action="store_true", help="Включить интерактивный режим?")
