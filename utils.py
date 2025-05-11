@@ -15,14 +15,16 @@ from keras.src.layers import (
     Conv1D,
     MaxPooling1D,
     Reshape,
-    GlobalAveragePooling1D,
+    GlobalAveragePooling1D, GlobalAveragePooling2D,
 )
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
+X_MAX = 0
+X_MIN = 1500
 X_SHAPE_RAW = 3000
-X_SHAPE_GPH = (369, 496, 1)  # изображение размером 369x496 в одноканале
+X_SHAPE_GPH = (1830, 1350, 1)  # изображение размером 1830x1350 в одноканале
 Y_SHAPE = 2  # ответ - количество точек в предсказании
 
 
@@ -427,31 +429,42 @@ def load_dataset__raw(dirpath: str) -> tuple[list[list[float]], list[list[float]
     return all_x, all_y, all_answers
 
 
-def load_dataset__gph(dirpath_gph: str, dirpath_raw: str) -> tuple[np.ndarray, np.ndarray]:
+def load_dataset__gph(dirpath: str, dataset_size: int | None = None) -> tuple[list[np.ndarray], list[list[float]]]:
     """
-    Загружает датасет изображений данных и датасет "сырых" данных
-    :param dirpath_gph: путь до датасета с изображениями
-    :param dirpath_raw: путь до датасета с "сырыми" данными
-    :return: X и Y значения, где:
+    Загружает датасет изображений (в формате png)
+    :param dirpath: путь до датасета
+    :return: tuple(X, answers), где:
         - X - изображения
-        - Y - координаты x нулевых точек, в которых функция меняет знак
+        - answers - координаты двух x точек - начала сигнала и отражения
     """
+    from PIL import Image
 
-    def load_raw_file(filepath: str) -> tuple[np.ndarray, np.ndarray]:
-        with open(filepath, "r") as f:
+    all_images = []
+    all_answers = []
+
+    # Загружаем соответствующие json файлы из raw_data
+    raw_dir = dirpath.replace("fig_data", "raw_data")
+
+    filenames = [filename for filename in sorted(os.listdir(dirpath)) if filename.endswith(".png")]
+    if dataset_size is not None:
+        if dataset_size > len(filenames):
+            raise ValueError(f"Размер датасета ({len(filenames)} шт.) меньше желаемого ({dataset_size} шт.)")
+        filenames = filenames[:dataset_size]
+    for filename in filenames:
+        # Загружаем изображение
+        img_path = os.path.join(dirpath, filename)
+        img = Image.open(img_path).convert("L")  # Конвертируем в grayscale
+        img_array = np.array(img) / 255.0  # Нормализуем в [0, 1]
+        img_array = np.expand_dims(img_array, axis=-1)  # Добавляем размерность канала
+        all_images.append(img_array)
+
+        # Загружаем соответствующие ответы из raw_data
+        json_path = os.path.join(raw_dir, filename.replace(".png", ".json"))
+        with open(json_path, "r") as f:
             data = json.load(f)
-            return np.array(data["points"]), np.array(data["answers"])
+            all_answers.append(data["answers"])
 
-    all_x = []
-    all_y = []
-    for path_ in os.listdir(dirpath_gph):
-        points, answers = load_raw_file(f"{dirpath_raw}/{path_}")
-        # добиваем значением `0` до нужного shape
-        points = np.pad(points, (0, X_SHAPE_RAW - points.shape[0]), mode="constant", constant_values=(0, 0))
-        answers = np.pad(answers, (0, Y_SHAPE - answers.shape[0]), mode="constant", constant_values=(0, 0))
-        all_x.append(np.array(points))  # вход нейросети в виде точек [x1, y1, x2, y2, ..., xn, yn, 0, 0, ...., 0]
-        all_y.append(answers)  # выход в виде координат x, где функция меняет знак
-    return np.array(all_x), np.array(all_y)
+    return all_images, all_answers
 
 
 def normalize(x: np.ndarray, x_min: float | int | None = None, x_max: float | int | None = None) -> np.ndarray:
@@ -488,28 +501,46 @@ def generate_model__raw() -> Sequential:
 
 
 def generate_model__gph() -> Sequential:
-    return Sequential(
-        [
-            Conv2D(32, (3, 3), activation="relu", padding="same", input_shape=X_SHAPE_GPH),
-            BatchNormalization(),
-            MaxPooling2D((2, 2)),
-            Dropout(0.25),
-            Conv2D(64, (3, 3), activation="relu", padding="same"),
-            BatchNormalization(),
-            MaxPooling2D((2, 2)),
-            Dropout(0.25),
-            Conv2D(128, (3, 3), activation="relu", padding="same"),
-            BatchNormalization(),
-            MaxPooling2D((2, 2)),
-            Dropout(0.25),
-            # Преобразование в вектор
-            Flatten(),
-            Dense(256, activation="relu"),
-            Dropout(0.5),
-            # Выходной слой. Используем сигмоиду, чтобы возвращать [0,1]
-            Dense(Y_SHAPE, activation="sigmoid"),
-        ]
-    )
+    return Sequential([
+        Input(shape=(1830, 1350, 1)),
+
+        # Первый блок - агрессивное уменьшение размерности
+        Conv2D(8, (7, 7), strides=(2, 2), activation='relu', padding='same'),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
+
+        # Второй блок
+        Conv2D(16, (5, 5), activation='relu', padding='same'),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
+
+        # Третий блок
+        Conv2D(32, (3, 3), activation='relu', padding='same'),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
+
+        # Четвёртый блок
+        Conv2D(64, (3, 3), activation='relu', padding='same'),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
+
+        # Пятый блок
+        Conv2D(64, (3, 3), activation='relu', padding='same'),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
+
+        # Шестой блок
+        Conv2D(64, (3, 3), activation='relu', padding='same'),
+        BatchNormalization(),
+        Flatten(),
+
+        # Полносвязные слои
+        Dense(256, activation='relu'),
+        # Dropout(0.3),
+        Dense(128, activation='relu'),
+        # Dropout(0.2),
+        Dense(Y_SHAPE, activation='linear')
+    ])
 
 
 class HistoryToFile(Callback):
