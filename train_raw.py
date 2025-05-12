@@ -91,9 +91,7 @@ def train(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Обучение нейронной сети для выбранной модели на сырых данных")
-    parser.add_argument(
-        "--model-number", type=int, choices=[10, 20, 30, 40], required=True, help="Номер модели."
-    )
+    parser.add_argument("--model-number", type=int, choices=[10, 20, 30, 40], required=True, help="Номер модели.")
     parser.add_argument("--learning-rate", type=float, default=0.001, help="Learning rate для оптимизатора Adam")
     parser.add_argument(
         "--reduce-learning-rate",

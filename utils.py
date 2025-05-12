@@ -3,6 +3,7 @@ import os
 from typing import Callable
 
 import numpy as np
+from PIL import Image
 from keras import Sequential, Input
 from keras.src.callbacks import Callback
 from keras.src.layers import (
@@ -15,11 +16,13 @@ from keras.src.layers import (
     Conv1D,
     MaxPooling1D,
     Reshape,
-    GlobalAveragePooling1D, GlobalAveragePooling2D,
+    GlobalAveragePooling1D,
+    GlobalAveragePooling2D,
 )
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+import keras
 
 X_MAX = 0
 X_MIN = 1500
@@ -467,6 +470,39 @@ def load_dataset__gph(dirpath: str, dataset_size: int | None = None) -> tuple[li
     return all_images, all_answers
 
 
+class GphLazyDataGenerator(keras.utils.Sequence):
+    def __init__(self, dirpath: str, batch_size: int = 32, dataset_size: int | None = None) -> None:
+        self._dirpath_gph = dirpath
+        self._dirpath_raw = dirpath.replace("fig_data", "raw_data")
+        self._dataset_size = dataset_size
+        self._batch_size = batch_size
+
+    def __len__(self):
+        filepaths = sorted(filepath for filepath in os.listdir(self._dirpath_gph) if filepath.endswith(".png") and filepath.replace(".png", "").isnumeric())
+        if self._dataset_size is not None:
+            if self._dataset_size > len(filepaths):
+                raise ValueError(f"Размер датасета ({len(filepaths)} шт.) меньше желаемого ({self._dataset_size} шт.)")
+            filepaths = filepaths[:self._dataset_size]
+        return int(np.ceil(len(filepaths) / self._batch_size))
+
+    def __getitem__(self, idx):
+        batch_x = []
+        batch_y = []
+        for i in range(idx * self._batch_size + 1, (idx + 1) * self._batch_size):
+            filename = f"{i}.png"
+            img_path = os.path.join(self._dirpath_gph, filename)
+            img = Image.open(img_path).convert("L")  # Конвертируем в grayscale
+            img_array = np.array(img) / 255.0  # Нормализуем в [0, 1]
+            img_array = np.expand_dims(img_array, axis=-1)  # Добавляем размерность канала
+            batch_x.append(img_array)
+
+            json_path = os.path.join(self._dirpath_raw, filename.replace(".png", ".json"))
+            with open(json_path, "r") as f:
+                data = json.load(f)
+                batch_y.append(data["answers"])
+        return np.array(batch_x), np.array(batch_y)
+
+
 def normalize(x: np.ndarray, x_min: float | int | None = None, x_max: float | int | None = None) -> np.ndarray:
     """Нормализует вектор чисел в диапазон [0;1]"""
     if x_min is not None or x_max is not None:
@@ -501,46 +537,41 @@ def generate_model__raw() -> Sequential:
 
 
 def generate_model__gph() -> Sequential:
-    return Sequential([
-        Input(shape=(1830, 1350, 1)),
-
-        # Первый блок - агрессивное уменьшение размерности
-        Conv2D(8, (7, 7), strides=(2, 2), activation='relu', padding='same'),
-        BatchNormalization(),
-        MaxPooling2D((2, 2)),
-
-        # Второй блок
-        Conv2D(16, (5, 5), activation='relu', padding='same'),
-        BatchNormalization(),
-        MaxPooling2D((2, 2)),
-
-        # Третий блок
-        Conv2D(32, (3, 3), activation='relu', padding='same'),
-        BatchNormalization(),
-        MaxPooling2D((2, 2)),
-
-        # Четвёртый блок
-        Conv2D(64, (3, 3), activation='relu', padding='same'),
-        BatchNormalization(),
-        MaxPooling2D((2, 2)),
-
-        # Пятый блок
-        Conv2D(64, (3, 3), activation='relu', padding='same'),
-        BatchNormalization(),
-        MaxPooling2D((2, 2)),
-
-        # Шестой блок
-        Conv2D(64, (3, 3), activation='relu', padding='same'),
-        BatchNormalization(),
-        Flatten(),
-
-        # Полносвязные слои
-        Dense(256, activation='relu'),
-        # Dropout(0.3),
-        Dense(128, activation='relu'),
-        # Dropout(0.2),
-        Dense(Y_SHAPE, activation='linear')
-    ])
+    return Sequential(
+        [
+            Input(shape=(1830, 1350, 1)),
+            # Первый блок - агрессивное уменьшение размерности
+            Conv2D(8, (7, 7), strides=(2, 2), activation="relu", padding="same"),
+            BatchNormalization(),
+            MaxPooling2D((2, 2)),
+            # Второй блок
+            Conv2D(16, (5, 5), activation="relu", padding="same"),
+            BatchNormalization(),
+            MaxPooling2D((2, 2)),
+            # Третий блок
+            Conv2D(32, (3, 3), activation="relu", padding="same"),
+            BatchNormalization(),
+            MaxPooling2D((2, 2)),
+            # Четвёртый блок
+            Conv2D(64, (3, 3), activation="relu", padding="same"),
+            BatchNormalization(),
+            MaxPooling2D((2, 2)),
+            # Пятый блок
+            Conv2D(64, (3, 3), activation="relu", padding="same"),
+            BatchNormalization(),
+            MaxPooling2D((2, 2)),
+            # Шестой блок
+            Conv2D(64, (3, 3), activation="relu", padding="same"),
+            BatchNormalization(),
+            Flatten(),
+            # Полносвязные слои
+            Dense(256, activation="relu"),
+            # Dropout(0.3),
+            Dense(128, activation="relu"),
+            # Dropout(0.2),
+            Dense(Y_SHAPE, activation="linear"),
+        ]
+    )
 
 
 class HistoryToFile(Callback):
