@@ -83,7 +83,7 @@ def prediction(model_number: int, weights_path: str, num_samples: int, interacti
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Проверка обученной нейронной сети на сырых данных")
-    parser.add_argument("--model-number", type=int, choices=[10, 20, 30, 40], required=True, help="Номер модели.")
+    parser.add_argument("--model-number", type=int, choices=[1, 2, 3, 4], required=True, help="Номер модели.")
     parser.add_argument("--weights-path", type=str, required=True, help="Путь до весов модели.")
     parser.add_argument("--num-samples", type=int, default=100, help="Количество примеров для проверки модели.")
     parser.add_argument("--interactive-mode", action="store_true", help="Включить интерактивный режим?")

@@ -10,6 +10,6 @@ def draw_model(weights_path: str, output: str) -> None:
 
 if __name__ == "__main__":
     draw_model(
-        weights_path="results/weights/10/conv1d/a829__2025-05-03T12:09:07__dataset_size=5000__loss=mae__start_lr=0.001__reduce_lr=False__batch_size=32__epochs=250__epoch=0233__val_loss=0.000991.keras",
-        output="examples/raw_model.png",
+        weights_path="results/weights/1/conv1d/a829__2025-05-03T12:09:07__dataset_size=5000__loss=mae__start_lr=0.001__reduce_lr=False__batch_size=32__epochs=250__epoch=0233__val_loss=0.000991.keras",
+        output="examples/conv1d_model.png",
     )

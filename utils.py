@@ -358,12 +358,10 @@ def get_generator_function_by_model_number(model_number: int) -> Callable:
     :param model_number: Номер модели, для которой требуется функция генерации.
     """
     generator_function_by_model_number = {
-        10: generate_simple_pulse_signal_without_noice,
-        20: generate_simple_pulse_signal_with_noice,
-        30: generate_complex_pulse_signal_without_noice,
-        40: generate_complex_pulse_signal_with_noice,
-        50: generate_gaussian_pulse_signal_without_noise,
-        60: generate_gaussian_pulse_signal_with_noise,
+        1: generate_simple_pulse_signal_without_noice,
+        2: generate_simple_pulse_signal_with_noice,
+        3: generate_complex_pulse_signal_without_noice,
+        4: generate_complex_pulse_signal_with_noice,
     }
     return generator_function_by_model_number[model_number]
 

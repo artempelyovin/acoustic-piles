@@ -27,8 +27,7 @@ def train(
     history_file = f"results/history/{model_number}/conv1d/{base_file_template}.json"
     history_image_file = f"results/history/{model_number}/conv1d/{base_file_template}.png"
     weight_file = f"results/weights/{model_number}/conv1d/{base_file_template}__epoch={{epoch:04d}}__val_loss={{val_loss:.6f}}.keras"
-    model_dir = f"{str(model_number)[0]}_"
-    dataset_dir = f"datasets/{model_dir}/raw_data"
+    dataset_dir = f"datasets/{model_number}/raw_data"
 
     # создаём директории (если ещё не созданы)
     os.makedirs(os.path.dirname(history_file), exist_ok=True)
@@ -90,8 +89,8 @@ def train(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Обучение нейронной сети для выбранной модели на сырых данных")
-    parser.add_argument("--model-number", type=int, choices=[10, 20, 30, 40], required=True, help="Номер модели.")
+    parser = argparse.ArgumentParser(description="Обучение нейронной сети для выбранной модели")
+    parser.add_argument("--model-number", type=int, choices=[1, 2, 3, 4], required=True, help="Номер модели.")
     parser.add_argument("--learning-rate", type=float, default=0.001, help="Learning rate для оптимизатора Adam")
     parser.add_argument(
         "--reduce-learning-rate",

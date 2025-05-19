@@ -33,9 +33,9 @@ if __name__ == "__main__":
     set_plt_style()
 
     dataset_sizes = [100, 300, 1000, 5000]
-    val_losses = [0.030797, 0.017569, 0.006211, 0.000991]
-    test_losses = [0.0477, 0.0175, 0.0064, 0.00073]
-    image_name = "10_dataseet_size_effect_on_loss.png"
+    val_losses = [0.042840, 0.032225, 0.010487, 0.003783]
+    test_losses = [0.0411, 0.0279, 0.0111, 0.0019]
+    image_name = "4_dataset_size_effect_on_loss.png"
     draw_dataset_size_effect_on_loss(
         dataset_sizes=dataset_sizes, val_losses=val_losses, test_losses=test_losses, image_name=image_name
     )
