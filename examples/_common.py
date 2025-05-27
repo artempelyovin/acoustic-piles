@@ -12,7 +12,7 @@ def draw_pulse_signal(
     xlim: tuple[float, float] | None = (0, 1500),
     ylim: tuple[float, float] | None = (-1.1, 1.1),
 ) -> None:
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(10, 4))
 
     ax.plot(t, pulse, color="tab:blue", label="Акустический сигнал")
     ax.axvline(start_x, color="tab:red", linestyle="--", label="Начало импульса")

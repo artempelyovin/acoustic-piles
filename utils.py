@@ -28,84 +28,85 @@ Y_SHAPE = 2  # ответ - количество точек в предсказ�
 
 def _generate_simple_pulse_signal(
     fs: int = 1000,
-    duration: float = 1000.0,
-    frequency: float = 50,
-    decay: float = 5,
-    start_time: float = 100.0,
-    pulse_duration: float = 100.0,
-    reflection_delay: float = 300.0,
-    reflection_amp: float = 0.6,
-    with_noise: bool = False,
-    noise_level: float | None = None,
+    duration: float = 1.0,
+    frequency: float = 50.0,
+    pulse_half_cycles: int = 3,
+    pulse_start: float = 0.1,
+    pulse_decay: float = 5.0,
+    reflection_delay: float = 0.3,
+    reflection_amplitude: float = 0.6,
+    reflection_decay: float = 10.0,
+    noise_std: float = 0.0,
 ) -> tuple[np.ndarray, np.ndarray, float, float]:
     """
-    Генерация простейшего акустического сигнала (синусоида) + отражения
+    Генерация акустического импульса с отражением
 
-    :param fs: частота дискретизации, Гц
-    :param duration: общая длительность сигнала, мс
-    :param frequency: частота основной синусоиды, Гц
-    :param decay: коэффициент экспоненциального затухания
-    :param start_time: время начала основного удара, мс
-    :param pulse_duration: длительность основного импульса, мс
-    :param reflection_delay: задержка отражения относительно удара, мс
-    :param reflection_amp: коэффициент ослабления отражения
-    :param with_noise: добавлять ли шум к полученному сигналу?
-    :param noise_level: стандартное отклонение шума (при with_noise=True)
+    Args:
+        fs: частота дискретизации (Гц)
+        duration: длительность сигнала (сек)
+        frequency: частота синусоиды (Гц)
+        pulse_half_cycles: количество полупериодов основного импульса
+        pulse_start: время начала импульса (сек)
+        pulse_decay: коэффициент затухания основного импульса
+        reflection_delay: задержка отражения после окончания импульса (сек)
+        reflection_amplitude: амплитуда отражения (0-1)
+        reflection_decay: коэффициент затухания отражения
+        noise_std: стандартное отклонение шума (0 = без шума)
 
-    :return t_ms: массив времени (мс)
-    :return pulse: сигнал
-    :return start_x: координата начала удара (мс)
-    :return reflection_x: координата начала отражения (мс)
+    Returns:
+        time_ms: массив времени (мс)
+        signal: результирующий сигнал
+        pulse_start_ms: начало импульса (мс)
+        reflection_start_ms: начало отражения (мс)
     """
-    start_x = start_time
-    reflection_x = start_time + reflection_delay
+    # Создаем временную ось
+    time = np.linspace(0, duration, int(fs * duration), endpoint=False)
+    signal = np.zeros_like(time)
 
-    # Перевод из миллисекунд в секунды
-    duration = duration / 1000
-    start_time = start_time / 1000
-    pulse_duration = pulse_duration / 1000
-    reflection_delay = reflection_delay / 1000
+    # Параметры основного импульса
+    pulse_duration = pulse_half_cycles / (2 * frequency)
+    pulse_end = pulse_start + pulse_duration
 
-    t = np.linspace(0, duration, int(fs * duration), endpoint=False)
-    t_ms = t * 1000  # массив времени в мс
-    pulse = np.zeros_like(t)
+    # Генерируем основной импульс
+    pulse_mask = (time >= pulse_start) & (time < pulse_end)
+    pulse_time = time[pulse_mask] - pulse_start
+    pulse_signal = np.sin(2 * np.pi * frequency * pulse_time) * np.exp(-pulse_decay * pulse_time)
+    signal[pulse_mask] = pulse_signal
 
-    start_idx = int(start_time * fs)
-    pulse_samples = int(pulse_duration * fs)
+    # Генерируем отражение
+    reflection_start = pulse_end + reflection_delay
+    reflection_mask = time >= reflection_start
+    reflection_time = time[reflection_mask] - reflection_start
 
-    if start_idx + pulse_samples > len(t):
-        pulse_samples = len(t) - start_idx
+    if np.any(reflection_mask):
+        reflection_signal = (
+            reflection_amplitude
+            * np.sin(2 * np.pi * frequency * reflection_time)
+            * np.exp(-reflection_decay * reflection_time)
+        )
+        signal[reflection_mask] += reflection_signal
 
-    signal = np.sin(2 * np.pi * frequency * t[:pulse_samples]) * np.exp(-decay * t[:pulse_samples])
-    pulse[start_idx : start_idx + pulse_samples] += signal
+    # Добавляем шум если нужно
+    if noise_std > 0:
+        signal += np.random.normal(0, noise_std, signal.shape)
 
-    reflection_idx = int((start_time + reflection_delay) * fs)
-
-    if reflection_idx + pulse_samples <= len(t):
-        pulse[reflection_idx : reflection_idx + pulse_samples] += reflection_amp * signal
-
-    if with_noise:
-        assert (
-            isinstance(noise_level, float) and noise_level >= 0.0
-        ), f"Необходимо указать noise_level в диапазоне [0;∞)"
-        noise = np.random.normal(0, noise_level, size=t.shape)
-        pulse += noise
-
-    return t_ms, pulse, start_x, reflection_x
+    # Возвращаем время в миллисекундах, поэтому умножаем на 1000
+    return time * 1000, signal, pulse_start * 1000, reflection_start * 1000
 
 
 def generate_simple_pulse_signal_without_noice() -> tuple[np.ndarray, np.ndarray, float, float]:
     """Генерация простейшего акустического сигнала (синусоида) + отражения"""
     return _generate_simple_pulse_signal(
         fs=1000,
-        duration=1500,
-        frequency=np.random.randint(35, 75),
-        decay=np.random.randint(3, 15),
-        start_time=np.random.uniform(50, 200),
-        pulse_duration=np.random.uniform(30, 100),
-        reflection_delay=np.random.uniform(250, 800),
-        reflection_amp=np.random.uniform(0.3, 0.8),
-        with_noise=False,
+        duration=1.5,
+        frequency=np.random.uniform(3.5, 7),
+        pulse_half_cycles=np.random.choice([2, 3, 4]),
+        pulse_start=np.random.uniform(0.01, 0.2),
+        pulse_decay=np.random.uniform(4, 7),
+        reflection_delay=np.random.uniform(0.25, 0.45),
+        reflection_amplitude=np.random.uniform(0.15, 0.25),
+        reflection_decay=np.random.uniform(8, 11),
+        noise_std=0.0,
     )
 
 
@@ -113,113 +114,107 @@ def generate_simple_pulse_signal_with_noice() -> tuple[np.ndarray, np.ndarray, f
     """Генерация простейшего акустического сигнала (синусоида) + отражения + шум"""
     return _generate_simple_pulse_signal(
         fs=1000,
-        duration=1500,
-        frequency=np.random.randint(35, 75),
-        decay=np.random.randint(3, 15),
-        start_time=np.random.uniform(50, 200),
-        pulse_duration=np.random.uniform(30, 100),
-        reflection_delay=np.random.uniform(250, 800),
-        reflection_amp=np.random.uniform(0.3, 0.8),
-        with_noise=True,
-        noise_level=np.random.uniform(0.05, 0.15),
+        duration=1.5,
+        frequency=np.random.uniform(3.5, 7),
+        pulse_half_cycles=np.random.choice([2, 3, 4]),
+        pulse_start=np.random.uniform(0.01, 0.2),
+        pulse_decay=np.random.uniform(4, 7),
+        reflection_delay=np.random.uniform(0.25, 0.45),
+        reflection_amplitude=np.random.uniform(0.15, 0.25),
+        reflection_decay=np.random.uniform(8, 11),
+        noise_std=np.random.uniform(0.025, 0.05),
     )
 
 
 def _generate_complex_pulse_signal(
     fs: int = 1000,
-    duration: float = 1000.0,
+    duration: float = 1.0,
     frequencies: tuple[float, ...] = (30, 60, 90, 120),
-    decay: float = 5.0,
-    start_time: float = 100.0,
-    pulse_duration: float = 100.0,
-    reflection_delay: float = 300.0,
-    reflection_amp: float = 0.5,
-    distortion_level: float = 0.05,
-    with_noise: bool = False,
-    noise_level: float | None = None,
+    pulse_start: float = 0.1,
+    pulse_duration: float = 0.1,
+    pulse_decay: float = 5.0,
+    reflection_delay: float = 0.3,
+    reflection_amplitude: float = 0.5,
+    reflection_decay: float = 5.0,
+    noise_std: float = 0.0,
 ) -> tuple[np.ndarray, np.ndarray, float, float]:
     """
-    Генерация сложного акустического сигнала (сумма затухающих синусоид) + отражения
+    Генерация сложного акустического импульса с отражением
 
-    :param fs: частота дискретизации, Гц
-    :param duration: общая длительность сигнала, мс
-    :param frequencies: список частот для композиции сигнала, Гц
-    :param decay: коэффициент экспоненциального затухания
-    :param start_time: время начала основного удара, мс
-    :param pulse_duration: длительность основного импульса, мс
-    :param reflection_delay: задержка отражения относительно удара, мс
-    :param reflection_amp: коэффициент ослабления отражения
-    :param distortion_level: уровень искажения отражения (Гауссов шум)
-    :param with_noise: добавлять ли шум к полученному сигналу?
-    :param noise_level: стандартное отклонение шума (при with_noise=True)
+    Args:
+        fs: частота дискретизации (Гц)
+        duration: длительность сигнала (сек)
+        frequencies: частоты для композиции сигнала (Гц)
+        pulse_start: время начала импульса (сек)
+        pulse_duration: длительность основного импульса (сек)
+        pulse_decay: коэффициент затухания основного импульса
+        reflection_delay: задержка отражения после окончания импульса (сек)
+        reflection_amplitude: амплитуда отражения (0-1)
+        reflection_decay: коэффициент затухания отражения
+        noise_std: стандартное отклонение общего шума (0 = без шума)
 
-    :return t_ms: массив времени (мс)
-    :return pulse: сигнал
-    :return start_x: координата начала удара (мс)
-    :return reflection_x: координата начала отражения (мс)
+    Returns:
+        time_ms: массив времени (мс)
+        signal: результирующий сигнал
+        pulse_start_ms: начало импульса (мс)
+        reflection_start_ms: начало отражения (мс)
     """
-    start_x = start_time
-    reflection_x = start_time + reflection_delay
+    time = np.linspace(0, duration, int(fs * duration), endpoint=False)
+    signal = np.zeros_like(time)
 
-    # Перевод из миллисекунд в секунды
-    duration = duration / 1000
-    start_time = start_time / 1000
-    pulse_duration = pulse_duration / 1000
-    reflection_delay = reflection_delay / 1000
+    # Параметры импульса
+    pulse_end_sec = pulse_start + pulse_duration
 
-    t = np.linspace(0, duration, int(fs * duration), endpoint=False)
-    t_ms = t * 1000  # массив времени в мс
-    pulse = np.zeros_like(t)
+    # Генерируем основной импульс (композиция синусоид со случайными фазами)
+    pulse_mask = (time >= pulse_start) & (time < pulse_end_sec)
+    pulse_time = time[pulse_mask] - pulse_start
 
-    start_idx = int(start_time * fs)
-    pulse_samples = int(pulse_duration * fs)
+    if np.any(pulse_mask):
+        # Генерируем случайные фазы для каждой частоты
+        phases = np.random.uniform(0, 2 * np.pi, size=len(frequencies))
 
-    # Время для одного импульса
-    segment_t = t[:pulse_samples]
+        # Создаем композицию синусоид
+        multi_signal = sum(np.sin(2 * np.pi * freq * pulse_time + phase) for freq, phase in zip(frequencies, phases))
+        multi_signal *= np.exp(-pulse_decay * pulse_time)
+        signal[pulse_mask] = multi_signal
 
-    # Генерация случайных фаз
-    phases = np.random.uniform(0, 2 * np.pi, size=len(frequencies))
+    # Генерируем отражение (продолжается до конца)
+    reflection_start_sec = pulse_end_sec + reflection_delay
+    reflection_mask = time >= reflection_start_sec
+    reflection_time = time[reflection_mask] - reflection_start_sec
 
-    # Композиция затухающих синусоид
-    multi_signal = sum(np.sin(2 * np.pi * f * segment_t + phi) for f, phi in zip(frequencies, phases))
-    multi_signal *= np.exp(-decay * segment_t)
+    if np.any(reflection_mask):
+        # Используем те же фазы для отражения
+        reflection_signal = sum(
+            np.sin(2 * np.pi * freq * reflection_time + phase) for freq, phase in zip(frequencies, phases)
+        )
+        reflection_signal *= np.exp(-reflection_decay * reflection_time)
+        signal[reflection_mask] += reflection_amplitude * reflection_signal
 
-    # Добавление основного импульса
-    pulse[start_idx : start_idx + pulse_samples] += multi_signal
+    # Добавляем общий шум
+    if noise_std > 0:
+        signal += np.random.normal(0, noise_std, signal.shape)
 
-    # Параметры отражения
-    reflection_idx = int((start_time + reflection_delay) * fs)
-
-    if reflection_idx + pulse_samples <= len(t):
-        distortion = np.random.normal(0, distortion_level, size=pulse_samples)
-        pulse[reflection_idx : reflection_idx + pulse_samples] += reflection_amp * (multi_signal + distortion)
-
-    # Добавление шума
-    if with_noise:
-        assert isinstance(noise_level, float) and noise_level >= 0.0, "Необходимо указать noise_level в диапазоне [0;∞)"
-        pulse += np.random.normal(0, noise_level, size=len(t))
-
-    return t_ms, pulse, start_x, reflection_x
+    # Возвращаем время в миллисекундах
+    return time * 1000, signal, pulse_start * 1000, reflection_start_sec * 1000
 
 
 def generate_complex_pulse_signal_without_noice() -> tuple[np.ndarray, np.ndarray, float, float]:
     """Генерация сложного акустического сигнала (сумма затухающих синусоид) + отражения"""
     return _generate_complex_pulse_signal(
         fs=1000,
-        duration=1500,
+        duration=1.5,
         frequencies=(
-            np.random.uniform(25, 35),
-            np.random.uniform(55, 65),
-            np.random.uniform(85, 95),
-            np.random.uniform(115, 125),
+            np.random.uniform(3, 5),
+            np.random.uniform(10, 12),
         ),
-        decay=np.random.randint(3, 15),
-        start_time=np.random.uniform(50, 200),
-        pulse_duration=np.random.uniform(30, 100),
-        reflection_delay=np.random.uniform(250, 800),
-        reflection_amp=np.random.uniform(0.3, 0.8),
-        distortion_level=np.random.uniform(0.02, 0.08),
-        with_noise=False,
+        pulse_start=np.random.uniform(0.01, 0.2),
+        pulse_duration=np.random.uniform(0.03, 0.1),
+        pulse_decay=np.random.uniform(4, 7),
+        reflection_delay=np.random.uniform(0.25, 0.45),
+        reflection_amplitude=np.random.uniform(0.15, 0.25),
+        reflection_decay=np.random.uniform(8, 11),
+        noise_std=0.0,
     )
 
 
@@ -227,21 +222,18 @@ def generate_complex_pulse_signal_with_noice() -> tuple[np.ndarray, np.ndarray, 
     """Генерация сложного акустического сигнала (сумма затухающих синусоид) + отражения + шум"""
     return _generate_complex_pulse_signal(
         fs=1000,
-        duration=1500,
+        duration=1.5,
         frequencies=(
-            np.random.uniform(25, 35),
-            np.random.uniform(55, 65),
-            np.random.uniform(85, 95),
-            np.random.uniform(115, 125),
+            np.random.uniform(3, 5),
+            np.random.uniform(10, 12),
         ),
-        decay=np.random.randint(3, 15),
-        start_time=np.random.uniform(50, 200),
-        pulse_duration=np.random.uniform(30, 100),
-        reflection_delay=np.random.uniform(250, 800),
-        reflection_amp=np.random.uniform(0.3, 0.8),
-        distortion_level=np.random.uniform(0.02, 0.08),
-        with_noise=True,
-        noise_level=np.random.uniform(0.15, 0.25),
+        pulse_start=np.random.uniform(0.01, 0.2),
+        pulse_duration=np.random.uniform(0.03, 0.1),
+        pulse_decay=np.random.uniform(4, 7),
+        reflection_delay=np.random.uniform(0.25, 0.45),
+        reflection_amplitude=np.random.uniform(0.15, 0.25),
+        reflection_decay=np.random.uniform(8, 11),
+        noise_std=np.random.uniform(0.025, 0.05),
     )
 
 
@@ -470,10 +462,11 @@ def generate_model__raw() -> Sequential:
         [
             Input(shape=(X_SHAPE_RAW,)),
             Reshape((X_SHAPE_RAW, 1)),
-            Conv1D(32, 5, activation="relu", padding="same"),
-            Conv1D(64, 5, activation="relu", padding="same"),
+            Conv1D(16, 5, activation="relu", padding="same"),
             MaxPooling1D(pool_size=2),
-            Conv1D(128, 5, activation="relu", padding="same"),
+            Conv1D(32, 5, activation="relu", padding="same"),
+            MaxPooling1D(pool_size=2),
+            Conv1D(64, 5, activation="relu", padding="same"),
             MaxPooling1D(pool_size=2),
             Flatten(),
             Dense(256, activation="relu"),
