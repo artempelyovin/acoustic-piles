@@ -44,7 +44,7 @@ def draw_loss(input_path: str, output_path: str, without_first_epoch: bool) -> N
     # Подписи
     ax.legend()
     ax.set_xlabel("Эпоха")
-    ax.set_ylabel("Функция потерь")
+    ax.set_ylabel("Значение функции потерь, мс")
     ax.set_title("Кривая обучения модели", fontsize=14, pad=15)
 
     # Разметка осей

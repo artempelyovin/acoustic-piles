@@ -22,7 +22,7 @@ def draw_dataset_size_effect_on_loss(
     # Подписи
     ax.legend()
     ax.set_xlabel("Размер датасета")
-    ax.set_ylabel("Ошибка")
+    ax.set_ylabel("Ошибка, мс")
     ax.set_title("Зависимость ошибки от размера датасета", fontsize=14, pad=15)
 
     plt.tight_layout()
