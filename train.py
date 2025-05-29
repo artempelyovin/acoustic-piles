@@ -3,6 +3,7 @@ import os
 import uuid
 from datetime import datetime
 
+import keras
 import numpy as np
 from keras.src.callbacks import ModelCheckpoint, ReduceLROnPlateau
 from keras.src.optimizers import Adam
@@ -10,6 +11,7 @@ from keras.src.optimizers import Adam
 from utils import load_dataset__raw, generate_model__raw, HistoryToFile, PlotHistory, normalize, X_MAX
 
 
+@keras.saving.register_keras_serializable()
 def custom_loss_with_denormalization(y_true, y_pred):
     """Кастомная функция потерь, возвращающая ошибку в понятный де-нормализованных значениях (мс)"""
     return abs((y_true * X_MAX) - (y_pred * X_MAX))

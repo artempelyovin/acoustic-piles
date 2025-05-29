@@ -3,6 +3,7 @@ import argparse
 import numpy as np
 from keras import models, Sequential
 
+from train import custom_loss_with_denormalization
 from utils import normalize, load_dataset__raw
 
 
@@ -41,7 +42,9 @@ def evaluate(model_number: int, weights_path: str, dataset_size: int) -> None:
     _, X_test = X[:split_index], X[split_index:]
     _, Y_test = Y[:split_index], Y[split_index:]
 
-    model: Sequential = models.load_model(weights_path)
+    model: Sequential = models.load_model(
+        weights_path, custom_objects={"custom_loss_with_denormalization": custom_loss_with_denormalization}
+    )
     model.summary()
 
     model.evaluate(X_test, Y_test)

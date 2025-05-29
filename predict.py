@@ -4,6 +4,7 @@ import numpy as np
 from keras import models, Sequential
 from matplotlib import pyplot as plt
 
+from train import custom_loss_with_denormalization
 from utils import draw_acoustic_signal, get_generator_function_by_model_number, normalize, denormalize
 
 
@@ -13,7 +14,9 @@ def prediction(model_number: int, weights_path: str, num_samples: int, interacti
 
     generate_pulse_signal = get_generator_function_by_model_number(model_number)
 
-    model: Sequential = models.load_model(weights_path, compile=False)
+    model: Sequential = models.load_model(
+        weights_path, custom_objects={"custom_loss_with_denormalization": custom_loss_with_denormalization}
+    )
     model.summary()
 
     mae_1_points, mae_2_points, mae_commons = [], [], []
