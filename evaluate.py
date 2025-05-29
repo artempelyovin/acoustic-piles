@@ -49,7 +49,7 @@ def evaluate(model_number: int, weights_path: str, dataset_size: int) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Проверка обученной нейронной сети на сырых данных")
-    parser.add_argument("--model-number", type=int, choices=[1, 2, 3, 4], required=True, help="Номер модели.")
+    parser.add_argument("--model-number", type=int, choices=[1, 2, 3, 4, 5], required=True, help="Номер модели.")
     parser.add_argument("--weights-path", type=str, required=True, help="Путь до весов модели.")
     parser.add_argument(
         "--dataset-size", type=int, default=5000, help="Обрезание датасета до нужного размера (по умолчанию: 5000)"

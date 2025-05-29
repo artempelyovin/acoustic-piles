@@ -1,5 +1,6 @@
 import json
 import os
+from random import choice
 from typing import Callable
 
 import numpy as np
@@ -225,6 +226,18 @@ def generate_complex_pulse_signal_with_noice() -> tuple[np.ndarray, np.ndarray, 
     )
 
 
+def generate_any_pulse_signal() -> tuple[np.ndarray, np.ndarray, float, float]:
+    random_pulse_signal_function = choice(
+        (
+            generate_simple_pulse_signal_without_noice,
+            generate_simple_pulse_signal_with_noice,
+            generate_complex_pulse_signal_without_noice,
+            generate_complex_pulse_signal_with_noice,
+        )
+    )
+    return random_pulse_signal_function()
+
+
 def get_generator_function_by_model_number(model_number: int) -> Callable:
     """
     Возвращает функцию генерации сигнала в зависимости от номера модели.
@@ -236,6 +249,7 @@ def get_generator_function_by_model_number(model_number: int) -> Callable:
         2: generate_simple_pulse_signal_with_noice,
         3: generate_complex_pulse_signal_without_noice,
         4: generate_complex_pulse_signal_with_noice,
+        5: generate_any_pulse_signal,
     }
     return generator_function_by_model_number[model_number]
 

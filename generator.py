@@ -65,7 +65,7 @@ def generator(model_number: int, dataset_size: int, interactive_mode: bool) -> N
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Генерация акустических сигналов.")
-    parser.add_argument("--model-number", type=int, choices=[1, 2, 3, 4], required=True, help="Номер модели.")
+    parser.add_argument("--model-number", type=int, choices=[1, 2, 3, 4, 5], required=True, help="Номер модели.")
     parser.add_argument("--dataset-size", type=int, default=5000, help="Размер датасета (по умолчанию 5000).")
     parser.add_argument("--interactive-mode", action="store_true", help="Включить интерактивный режим?")
 
