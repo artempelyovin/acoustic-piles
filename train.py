@@ -7,14 +7,18 @@ import numpy as np
 from keras.src.callbacks import ModelCheckpoint, ReduceLROnPlateau
 from keras.src.optimizers import Adam
 
-from utils import load_dataset__raw, generate_model__raw, HistoryToFile, PlotHistory, normalize
+from utils import load_dataset__raw, generate_model__raw, HistoryToFile, PlotHistory, normalize, X_MAX
+
+
+def custom_loss_with_denormalization(y_true, y_pred):
+    """Кастомная функция потерь, возвращающая ошибку в понятный де-нормализованных значениях (мс)"""
+    return abs((y_true * X_MAX) - (y_pred * X_MAX))
 
 
 def train(
     model_number: int,
     learning_rate: float,
     reduce_learning_rate: float,
-    loss: str,
     epochs: int,
     batch_size: int,
     dataset_size: int,
@@ -23,7 +27,7 @@ def train(
     uuid_ = str(uuid.uuid4())[:4]
 
     # шаблоны путей
-    base_file_template = f"{uuid_}__{now}__dataset_size={dataset_size}__loss={loss}__start_lr={learning_rate}__reduce_lr={reduce_learning_rate}__batch_size={batch_size}__epochs={epochs}"
+    base_file_template = f"{uuid_}__{now}__dataset_size={dataset_size}__start_lr={learning_rate}__reduce_lr={reduce_learning_rate}__batch_size={batch_size}__epochs={epochs}"
     history_file = f"results/history/{model_number}/conv1d/{base_file_template}.json"
     history_image_file = f"results/history/{model_number}/conv1d/{base_file_template}.png"
     weight_file = f"results/weights/{model_number}/conv1d/{base_file_template}__epoch={{epoch:04d}}__val_loss={{val_loss:.6f}}.keras"
@@ -69,7 +73,7 @@ def train(
 
     # подготовка модели
     model = generate_model__raw()
-    model.compile(optimizer=Adam(learning_rate=learning_rate), loss=loss)
+    model.compile(optimizer=Adam(learning_rate=learning_rate), loss=custom_loss_with_denormalization)
     model.summary()
 
     # обучение
@@ -97,7 +101,6 @@ if __name__ == "__main__":
         action="store_true",
         help="Уменьшать learning rate для оптимизатора Adam в процессе обучения?",
     )
-    parser.add_argument("--loss", type=str, default="mae", choices=["mae", "mse"], help="Функция потерь")
     parser.add_argument("--epochs", type=int, default=250, help="Кол-во эпох в обучении")
     parser.add_argument("--batch-size", type=int, default=32, help="Размер батча в обучении")
     parser.add_argument(
@@ -113,7 +116,6 @@ if __name__ == "__main__":
         model_number=args.model_number,
         learning_rate=args.learning_rate,
         reduce_learning_rate=args.reduce_learning_rate,
-        loss=args.loss,
         epochs=args.epochs,
         batch_size=args.batch_size,
         dataset_size=args.dataset_size,

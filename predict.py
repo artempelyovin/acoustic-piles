@@ -13,7 +13,7 @@ def prediction(model_number: int, weights_path: str, num_samples: int, interacti
 
     generate_pulse_signal = get_generator_function_by_model_number(model_number)
 
-    model: Sequential = models.load_model(weights_path)
+    model: Sequential = models.load_model(weights_path, compile=False)
     model.summary()
 
     mae_1_points, mae_2_points, mae_commons = [], [], []
