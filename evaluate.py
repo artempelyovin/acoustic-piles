@@ -3,7 +3,8 @@ import argparse
 import numpy as np
 from keras import models, Sequential
 
-from train import custom_loss_with_denormalization
+# noinspection PyUnresolvedReferences
+from train import absolute_percentage_error
 from utils import normalize, load_dataset__raw
 
 
@@ -42,9 +43,7 @@ def evaluate(model_number: int, weights_path: str, dataset_size: int) -> None:
     _, X_test = X[:split_index], X[split_index:]
     _, Y_test = Y[:split_index], Y[split_index:]
 
-    model: Sequential = models.load_model(
-        weights_path, custom_objects={"custom_loss_with_denormalization": custom_loss_with_denormalization}
-    )
+    model: Sequential = models.load_model(weights_path)
     model.summary()
 
     model.evaluate(X_test, Y_test)
@@ -52,7 +51,7 @@ def evaluate(model_number: int, weights_path: str, dataset_size: int) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Проверка обученной нейронной сети на сырых данных")
-    parser.add_argument("--model-number", type=int, choices=[1, 2, 3, 4, 5], required=True, help="Номер модели.")
+    parser.add_argument("--model-number", type=int, choices=[1, 2, 3, 4, 5, 6], required=True, help="Номер модели.")
     parser.add_argument("--weights-path", type=str, required=True, help="Путь до весов модели.")
     parser.add_argument(
         "--dataset-size", type=int, default=5000, help="Обрезание датасета до нужного размера (по умолчанию: 5000)"

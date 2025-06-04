@@ -4,7 +4,8 @@ import numpy as np
 from keras import models, Sequential
 from matplotlib import pyplot as plt
 
-from train import custom_loss_with_denormalization
+# noinspection PyUnresolvedReferences
+from train import absolute_percentage_error
 from utils import draw_acoustic_signal, get_generator_function_by_model_number, normalize, denormalize
 
 
@@ -14,9 +15,7 @@ def prediction(model_number: int, weights_path: str, num_samples: int, interacti
 
     generate_pulse_signal = get_generator_function_by_model_number(model_number)
 
-    model: Sequential = models.load_model(
-        weights_path, custom_objects={"custom_loss_with_denormalization": custom_loss_with_denormalization}
-    )
+    model: Sequential = models.load_model(weights_path)
     model.summary()
 
     mae_1_points, mae_2_points, mae_commons = [], [], []
@@ -86,7 +85,7 @@ def prediction(model_number: int, weights_path: str, num_samples: int, interacti
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Проверка обученной нейронной сети на сырых данных")
-    parser.add_argument("--model-number", type=int, choices=[1, 2, 3, 4, 5], required=True, help="Номер модели.")
+    parser.add_argument("--model-number", type=int, choices=[1, 2, 3, 4, 5, 6], required=True, help="Номер модели.")
     parser.add_argument("--weights-path", type=str, required=True, help="Путь до весов модели.")
     parser.add_argument("--num-samples", type=int, default=100, help="Количество примеров для проверки модели.")
     parser.add_argument("--interactive-mode", action="store_true", help="Включить интерактивный режим?")

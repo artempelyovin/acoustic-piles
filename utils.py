@@ -1,5 +1,6 @@
 import json
 import os
+import random
 from random import choice
 from typing import Callable
 
@@ -10,9 +11,6 @@ from keras.src.layers import Dense, Flatten, Conv1D, MaxPooling1D, Reshape
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-
-NUM_OF_POINTS = 1500  # Кол-во точек в каждом примере
-X_MAX = NUM_OF_POINTS  # максимальный `x` в мс
 
 
 def _generate_simple_pulse_signal(
@@ -238,6 +236,14 @@ def generate_any_pulse_signal() -> tuple[np.ndarray, np.ndarray, float, float]:
     return random_pulse_signal_function()
 
 
+def load_real_signal_from_6_model() -> tuple[np.ndarray, np.ndarray, float, float]:
+    filenames = [f for f in os.listdir("datasets/6/raw_data")]
+    filename = random.choice(filenames)
+    with open(f"datasets/6/raw_data/{filename}", "r") as file:
+        content = json.load(file)
+        return np.array(content["x"]), np.array(content["y"]), content["answers"][0], content["answers"][1]
+
+
 def get_generator_function_by_model_number(model_number: int) -> Callable:
     """
     Возвращает функцию генерации сигнала в зависимости от номера модели.
@@ -250,6 +256,7 @@ def get_generator_function_by_model_number(model_number: int) -> Callable:
         3: generate_complex_pulse_signal_without_noice,
         4: generate_complex_pulse_signal_with_noice,
         5: generate_any_pulse_signal,
+        6: load_real_signal_from_6_model,
     }
     return generator_function_by_model_number[model_number]
 
@@ -326,11 +333,11 @@ def denormalize(x: np.ndarray, x_min: float, x_max: float) -> np.ndarray:
     return x * (x_max - x_min) + x_min
 
 
-def generate_model__raw() -> Sequential:
+def generate_model__raw(num_of_points: int) -> Sequential:
     return Sequential(
         [
-            Input(shape=(NUM_OF_POINTS * 2,)),  # умножаем на 2, т.к. на вход подаются и `x` и `y` координаты
-            Reshape((NUM_OF_POINTS * 2, 1)),
+            Input(shape=(num_of_points * 2,)),  # умножаем на 2, т.к. на вход подаются и `x` и `y` координаты
+            Reshape((num_of_points * 2, 1)),
             Conv1D(16, 5, activation="relu", padding="same"),
             MaxPooling1D(pool_size=2),
             Conv1D(32, 5, activation="relu", padding="same"),

@@ -5,7 +5,7 @@ from utils import generate_model__raw
 
 
 def draw_model(output: str) -> None:
-    model: Sequential = generate_model__raw()
+    model: Sequential = generate_model__raw(num_of_points=1500)
     plot_model(model, to_file=output, show_shapes=True, show_layer_names=True, show_layer_activations=True)
 
 

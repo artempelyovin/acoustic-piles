@@ -5,16 +5,16 @@ from datetime import datetime
 
 import keras
 import numpy as np
+import tensorflow as tf
 from keras.src.callbacks import ModelCheckpoint, ReduceLROnPlateau
 from keras.src.optimizers import Adam
 
-from utils import load_dataset__raw, generate_model__raw, HistoryToFile, PlotHistory, normalize, X_MAX
+from utils import load_dataset__raw, generate_model__raw, HistoryToFile, PlotHistory, normalize
 
 
 @keras.saving.register_keras_serializable()
-def custom_loss_with_denormalization(y_true, y_pred):
-    """Кастомная функция потерь, возвращающая ошибку в понятный де-нормализованных значениях (мс)"""
-    return abs((y_true * X_MAX) - (y_pred * X_MAX))
+def absolute_percentage_error(y_true, y_pred):
+    return tf.keras.losses.MAE(y_true, y_pred) * 100
 
 
 def train(
@@ -48,6 +48,7 @@ def train(
     assert len(X[0]) == len(Y[0]), f"Разная размерность X[0] ({len(X[0])}) и Y[0] ({len(Y[0])})"
     if len(X) < dataset_size:
         raise ValueError(f"Размер датасета ({len(X)} шт.) меньше желаемого ({dataset_size} шт.)")
+    num_of_points = len(X[0])
 
     # обрезаем до dataset_size
     X = np.array(X[:dataset_size])
@@ -74,8 +75,8 @@ def train(
     Y_train, Y_test = Y[:split_index], Y[split_index:]
 
     # подготовка модели
-    model = generate_model__raw()
-    model.compile(optimizer=Adam(learning_rate=learning_rate), loss=custom_loss_with_denormalization)
+    model = generate_model__raw(num_of_points=num_of_points)
+    model.compile(optimizer=Adam(learning_rate=learning_rate), loss=absolute_percentage_error)
     model.summary()
 
     # обучение
@@ -96,7 +97,7 @@ def train(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Обучение нейронной сети для выбранной модели")
-    parser.add_argument("--model-number", type=int, choices=[1, 2, 3, 4, 5], required=True, help="Номер модели.")
+    parser.add_argument("--model-number", type=int, choices=[1, 2, 3, 4, 5, 6], required=True, help="Номер модели.")
     parser.add_argument("--learning-rate", type=float, default=0.001, help="Learning rate для оптимизатора Adam")
     parser.add_argument(
         "--reduce-learning-rate",
