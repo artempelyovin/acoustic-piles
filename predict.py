@@ -43,17 +43,19 @@ def prediction(model_number: int, weights_path: str, num_samples: int, interacti
         start_x_predict, reflection_x_predict = predict
         start_x_predict_normalize, reflection_x_predict_normalize = predict_normalize
 
-        title = f"Predict {i}/{num_samples}"
+        title = f"Предсказание {i}/{num_samples}"
         # расчёт ошибок
         maep_1_points.append(abs(start_x_normalize - start_x_predict_normalize) * 100)
         mae_1_point_all = sum(maep_1_points) / i if i != 0 else sum(maep_1_points)
-        mae_1_point_str = f"1 point maep (curr/all): {maep_1_points[-1]:.3f}%/{mae_1_point_all:.3f}%"
+        mae_1_point_str = (
+            f"Средняя абсолютная ошибка в % для первой линии уровня: {maep_1_points[-1]:.3f}%/{mae_1_point_all:.3f}%"
+        )
         maep_2_points.append(abs(reflection_x_normalize - reflection_x_predict_normalize) * 100)
         mae_2_point_all = sum(maep_2_points) / i if i != 0 else sum(maep_2_points)
-        mae_2_point_str = f"2 point maep (curr/all): {maep_2_points[-1]:.3f}%/{mae_2_point_all:.3f}%"
+        mae_2_point_str = f"Средняя абсолютная ошибка в % для второй линии уровня (текущая/общая): {maep_2_points[-1]:.3f}%/{mae_2_point_all:.3f}%"
         maep_commons.append((maep_1_points[-1] + maep_2_points[-1]) / 2)
         mae_common_all = sum(maep_commons) / i if i != 0 else sum(maep_commons)
-        mae_common_str = f"common maep (curr/all): {maep_commons[-1]:.3f}%/{mae_common_all:.3f}%"
+        mae_common_str = f"Средняя абсолютная ошибка в % для обоих линий уровней (текущая/общая): {maep_commons[-1]:.3f}%/{mae_common_all:.3f}%"
 
         if interactive_mode:
 
@@ -81,9 +83,11 @@ def prediction(model_number: int, weights_path: str, num_samples: int, interacti
             print(mae_common_str)
 
     print("-" * 40)
-    print(f"1 point maep (all): {sum(maep_1_points)/num_samples:.3f}%")
-    print(f"2 point maep (all): {sum(maep_2_points)/num_samples:.3f}%")
-    print(f"common maep (all): {sum(maep_commons)/num_samples:.3f}%")
+    print(f"Средняя абсолютная ошибка для первой линии уровня (общая): {sum(maep_1_points)/num_samples:.3f}%")
+    print(f"Средняя абсолютная ошибка для второй линии уровня (общая): {sum(maep_2_points)/num_samples:.3f}%")
+    print(
+        f"Средняя абсолютная ошибка в % для обоих линий уровней (текущая/общая): {sum(maep_commons)/num_samples:.3f}%"
+    )
 
 
 if __name__ == "__main__":

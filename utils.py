@@ -380,11 +380,11 @@ class PlotHistory(Callback):
             return
 
         plt.figure()
-        plt.plot(loss, label="Training Loss")
-        plt.plot(val_loss, label="Validation Loss")
-        plt.title("Training and Validation Loss")
-        plt.xlabel("Epochs")
-        plt.ylabel("Loss")
+        plt.plot(loss, label="Ошибка на тестовых данных")
+        plt.plot(val_loss, label="Ошибка на валидационных данных")
+        plt.title("Ошибка на тестовых и валидационных данных")
+        plt.xlabel("Эпохи")
+        plt.ylabel("Ошибка (%)")
         plt.legend()
         plt.grid(True)
         plt.ylim(0, max(max(loss), max(val_loss)) * 1.1)  # Установка пределов по оси Y
