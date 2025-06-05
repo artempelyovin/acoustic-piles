@@ -18,7 +18,7 @@ def prediction(model_number: int, weights_path: str, num_samples: int, interacti
     model: Sequential = models.load_model(weights_path)
     model.summary()
 
-    mae_1_points, mae_2_points, mae_commons = [], [], []
+    maep_1_points, maep_2_points, maep_commons = [], [], []
 
     for i in range(1, num_samples + 1):
         x, y, start_x, reflection_x = generate_pulse_signal()
@@ -29,6 +29,8 @@ def prediction(model_number: int, weights_path: str, num_samples: int, interacti
         x_min, x_max = x.min(), x.max()
         x_normalize = normalize(x)
         y_normalize = normalize(y)
+        start_x_normalize = normalize(start_x, x_min, x_max)
+        reflection_x_normalize = normalize(reflection_x, x_min, x_max)
 
         # [x1, x2, ..., xn], [y1, y2, ..., yn] --> [x1, y1, x2, y2, ..., xn, yn]
         model_input = np.empty((2 * x_normalize.shape[0],), dtype=x_normalize.dtype)
@@ -36,21 +38,22 @@ def prediction(model_number: int, weights_path: str, num_samples: int, interacti
         model_input[1::2] = y_normalize
 
         # предсказание
-        predict = model.predict(np.array([model_input]), verbose=0)[0]
-        predict = denormalize(predict, x_min=x_min, x_max=x_max)
+        predict_normalize = model.predict(np.array([model_input]), verbose=0)[0]
+        predict = denormalize(predict_normalize, x_min=x_min, x_max=x_max)
         start_x_predict, reflection_x_predict = predict
+        start_x_predict_normalize, reflection_x_predict_normalize = predict_normalize
 
         title = f"Predict {i}/{num_samples}"
         # расчёт ошибок
-        mae_1_points.append(abs(start_x - start_x_predict))
-        mae_1_point_all = sum(mae_1_points) / i if i != 0 else sum(mae_1_points)
-        mae_1_point_str = f"1 point mae (curr/all): {mae_1_points[-1]:.3f}/{mae_1_point_all:.3f}"
-        mae_2_points.append(abs(reflection_x - reflection_x_predict))
-        mae_2_point_all = sum(mae_2_points) / i if i != 0 else sum(mae_2_points)
-        mae_2_point_str = f"2 point mae (curr/all): {mae_2_points[-1]:.3f}/{mae_2_point_all:.3f}"
-        mae_commons.append((mae_1_points[-1] + mae_2_points[-1]) / 2)
-        mae_common_all = sum(mae_commons) / i if i != 0 else sum(mae_commons)
-        mae_common_str = f"common mae (curr/all): {mae_commons[-1]:.3f}/{mae_common_all:.3f}"
+        maep_1_points.append(abs(start_x_normalize - start_x_predict_normalize) * 100)
+        mae_1_point_all = sum(maep_1_points) / i if i != 0 else sum(maep_1_points)
+        mae_1_point_str = f"1 point maep (curr/all): {maep_1_points[-1]:.3f}%/{mae_1_point_all:.3f}%"
+        maep_2_points.append(abs(reflection_x_normalize - reflection_x_predict_normalize) * 100)
+        mae_2_point_all = sum(maep_2_points) / i if i != 0 else sum(maep_2_points)
+        mae_2_point_str = f"2 point maep (curr/all): {maep_2_points[-1]:.3f}%/{mae_2_point_all:.3f}%"
+        maep_commons.append((maep_1_points[-1] + maep_2_points[-1]) / 2)
+        mae_common_all = sum(maep_commons) / i if i != 0 else sum(maep_commons)
+        mae_common_str = f"common maep (curr/all): {maep_commons[-1]:.3f}%/{mae_common_all:.3f}%"
 
         if interactive_mode:
 
@@ -78,9 +81,9 @@ def prediction(model_number: int, weights_path: str, num_samples: int, interacti
             print(mae_common_str)
 
     print("-" * 40)
-    print(f"1 point mae (all): {sum(mae_1_points)/num_samples:.3f}")
-    print(f"2 point mae (all): {sum(mae_2_points)/num_samples:.3f}")
-    print(f"common mae (all): {sum(mae_commons)/num_samples:.3f}")
+    print(f"1 point maep (all): {sum(maep_1_points)/num_samples:.3f}%")
+    print(f"2 point maep (all): {sum(maep_2_points)/num_samples:.3f}%")
+    print(f"common maep (all): {sum(maep_commons)/num_samples:.3f}%")
 
 
 if __name__ == "__main__":
