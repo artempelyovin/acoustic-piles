@@ -8,6 +8,8 @@
 - обучение свёрточных нейронных сетей на выбранном датасете
 - оценку обучения нейронной сети
 
+---
+
 ### Структура проекта
 
 ```
@@ -23,6 +25,8 @@
 ├── train.py                # Обучение моделей
 ├── utils.py                # Вспомогательные функции
 ```
+
+---
 
 ### Настройка окружения
 
@@ -50,6 +54,8 @@
    pip install -r requirements.txt
    ```
 
+---
+
 ### Описание скриптов
 
 #### `dataset_converter.py`
@@ -68,6 +74,8 @@ python dataset_converter.py --dataset-path "path/to/matlab/dataset" --model-numb
 
 Подробное описания параметров можно получить, выполнив `python dataset_converter.py --help`
 
+---
+
 #### `generator.py`
 
 Генерация синтетических сигналов:
@@ -84,6 +92,8 @@ python generator.py --model-number 1 --dataset-size 5000 --interactive-mode
 
 Подробное описания параметров можно получить, выполнив `python generate.py --help`
 
+---
+
 #### `train.py`
 
 Обучение модели:
@@ -99,6 +109,8 @@ python train.py --model-number 1 --learning-rate 0.001 --reduce-learning-rate --
 ```
 
 Подробное описания параметров можно получить, выполнив `python train.py --help`
+
+---
 
 #### `evaluate.py`
 
