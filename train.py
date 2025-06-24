@@ -1,3 +1,11 @@
+"""
+Модуль для обучения нейронных сетей на датасетах различных моделей.
+
+Этот модуль предоставляет функциональность для обучения сверточных нейронных сетей
+с использованием TensorFlow/Keras. Включает в себя настройку гиперпараметров,
+обработку данных, callbacks для сохранения истории обучения и весов модели.
+"""
+
 import argparse
 import os
 import uuid
@@ -14,6 +22,19 @@ from utils import load_dataset__raw, generate_model__raw, HistoryToFile, PlotHis
 
 @keras.saving.register_keras_serializable()
 def absolute_percentage_error(y_true, y_pred):
+    """
+    Кастомная функция потерь для вычисления абсолютной процентной ошибки.
+
+    Вычисляет среднюю абсолютную ошибку между истинными и предсказанными значениями,
+    умноженную на 100 для получения процентного значения.
+
+    Args:
+        y_true: Истинные значения целевой переменной.
+        y_pred: Предсказанные значения модели.
+
+    Returns:
+        Абсолютная процентная ошибка между y_true и y_pred.
+    """
     return tf.keras.losses.MAE(y_true, y_pred) * 100
 
 
@@ -25,43 +46,62 @@ def train(
     batch_size: int,
     dataset_size: int,
 ) -> None:
+    """
+    Обучает нейронную сеть для указанной модели с заданными гиперпараметрами.
+
+    Функция загружает датасет, подготавливает данные (нормализация, разбиение на
+    обучающую и валидационную выборки), создает модель и проводит обучение с
+    сохранением истории и весов.
+
+    Args:
+        model_number: Номер модели (1-6) для обучения.
+        learning_rate: Начальная скорость обучения для оптимизатора Adam.
+        reduce_learning_rate: Флаг для уменьшения learning rate в процессе обучения.
+        epochs: Количество эпох обучения.
+        batch_size: Размер батча для обучения.
+        dataset_size: Максимальный размер используемого датасета.
+
+    Raises:
+        ValueError: Если размер датасета меньше требуемого dataset_size.
+        AssertionError: Если размерности векторов X, Y и ANSWERS не совпадают.
+    """
     now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     uuid_ = str(uuid.uuid4())[:4]
 
-    # шаблоны путей
+    # Шаблоны путей для сохранения результатов
     base_file_template = f"{uuid_}__{now}__dataset_size={dataset_size}__start_lr={learning_rate}__reduce_lr={reduce_learning_rate}__batch_size={batch_size}__epochs={epochs}"
     history_file = f"results/history/{model_number}/conv1d/{base_file_template}.json"
     history_image_file = f"results/history/{model_number}/conv1d/{base_file_template}.png"
     weight_file = f"results/weights/{model_number}/conv1d/{base_file_template}__epoch={{epoch:04d}}__val_loss={{val_loss:.6f}}.keras"
     dataset_dir = f"datasets/{model_number}/raw_data"
 
-    # создаём директории (если ещё не созданы)
+    # Создаём директории (если ещё не созданы)
     os.makedirs(os.path.dirname(history_file), exist_ok=True)
     os.makedirs(os.path.dirname(history_image_file), exist_ok=True)
     os.makedirs(os.path.dirname(weight_file), exist_ok=True)
 
-    # грузим датасет и проверяем размерности
+    # Загружаем датасет и проверяем размерности
     X, Y, ANSWERS = load_dataset__raw(dataset_dir)
     assert (
         len(X) == len(Y) == len(ANSWERS)
-    ), f"Разные длины векторов X ({len(X)}, Y ({len(Y)}) и ANSWERS ({len(ANSWERS)})"
+    ), f"Разные длины векторов X ({len(X)}), Y ({len(Y)}) и ANSWERS ({len(ANSWERS)})"
     assert len(X[0]) == len(Y[0]), f"Разная размерность X[0] ({len(X[0])}) и Y[0] ({len(Y[0])})"
     if len(X) < dataset_size:
         raise ValueError(f"Размер датасета ({len(X)} шт.) меньше желаемого ({dataset_size} шт.)")
     num_of_points = len(X[0])
 
-    # обрезаем до dataset_size
+    # Обрезаем до dataset_size
     X = np.array(X[:dataset_size])
     Y = np.array(Y[:dataset_size])
     ANSWERS = np.array(ANSWERS[:dataset_size])
 
-    # нормализуем всё в диапазон [0;1]
+    # Нормализуем всё в диапазон [0;1]
     for i in range(len(X)):
         ANSWERS[i] = normalize(ANSWERS[i], x_min=X[i].min(), x_max=X[i].max())  # нормализуем относительно вектора X[i]!
         X[i] = normalize(X[i])
         Y[i] = normalize(Y[i])
 
-    # [x1, x2, ..., xn], [y1, y2, ..., yn] --> [x1, y1, x2, y2, ..., xn, yn]
+    # Преобразуем [x1, x2, ..., xn], [y1, y2, ..., yn] --> [x1, y1, x2, y2, ..., xn, yn]
     NEW_X = np.empty((X.shape[0], 2 * X.shape[1]), dtype=X.dtype)
     NEW_X[:, 0::2] = X
     NEW_X[:, 1::2] = Y
@@ -69,17 +109,17 @@ def train(
     X = NEW_X  # вход нейросети
     Y = ANSWERS  # выход нейросети
 
-    # разбитие на обучающую и тестовую выборки
+    # Разбиение на обучающую и тестовую выборки
     split_index = int(0.8 * len(X))
     X_train, X_test = X[:split_index], X[split_index:]
     Y_train, Y_test = Y[:split_index], Y[split_index:]
 
-    # подготовка модели
+    # Подготовка модели
     model = generate_model__raw(num_of_points=num_of_points)
     model.compile(optimizer=Adam(learning_rate=learning_rate), loss=absolute_percentage_error)
     model.summary()
 
-    # обучение
+    # Обучение
     callbacks = [
         ModelCheckpoint(filepath=weight_file, monitor="val_loss", mode="min", save_best_only=True, verbose=1),
         HistoryToFile(history_file=history_file),
@@ -91,7 +131,7 @@ def train(
         )
     model.fit(X_train, Y_train, epochs=epochs, batch_size=batch_size, validation_split=0.2, callbacks=callbacks)
 
-    # проверка на тестовом датасете
+    # Проверка на тестовом датасете
     model.evaluate(X_test, Y_test)
 
 
@@ -104,7 +144,7 @@ if __name__ == "__main__":
         action="store_true",
         help="Уменьшать learning rate для оптимизатора Adam в процессе обучения?",
     )
-    parser.add_argument("--epochs", type=int, default=250, help="Кол-во эпох в обучении")
+    parser.add_argument("--epochs", type=int, default=250, help="Количество эпох в обучении")
     parser.add_argument("--batch-size", type=int, default=32, help="Размер батча в обучении")
     parser.add_argument(
         "--dataset-size",
